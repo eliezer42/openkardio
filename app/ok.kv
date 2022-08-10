@@ -1,0 +1,254 @@
+#:kivy 2.1.0
+
+<ItemDrawer>:
+    theme_text_color: "Custom"
+    on_release: 
+        self.parent.set_color_item(self)
+        app.root.ids.screen_manager.current = root.screen
+        app.root.ids.nav_drawer.set_state("close")
+        app.root.ids.screen_manager.transition.direction = 'left'
+
+    IconLeftWidget:
+        id: icon
+        icon: root.icon
+        theme_text_color: "Custom"
+        text_color: root.text_color
+
+
+<ContentNavigationDrawer>:
+    orientation: "vertical"
+    padding: "8dp"
+    spacing: "8dp"
+    AnchorLayout:
+        anchor_x: "left"
+        size_hint_y: None
+        height: avatar.height
+
+        Image:
+            id: avatar
+            size_hint: None, None
+            size: "56dp", "56dp"
+            source: "data/logo/kivy-icon-256.png"
+
+    MDLabel:
+        text: "KivyMD library"
+        font_style: "Button"
+        adaptive_height: True
+
+    MDLabel:
+        text: "kivydevelopment@gmail.com"
+        font_style: "Caption"
+        adaptive_height: True
+
+    ScrollView:
+        DrawerList:
+            id: md_list
+
+<EkgListItem>:
+    on_release:
+        app.root.ids.screen_manager.current = "view_ekg"
+        app.root.ids.view_ekg_toolbar.title = root.text
+        app.root.ids.screen_manager.transition.direction = 'left'
+    IconLeftWidget:
+        icon: root.icon
+    
+
+MDScreen:
+    MDNavigationLayout:
+        ScreenManager:
+            id: screen_manager
+            MDScreen:
+                name: "screen1"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    MDToolbar:
+                        title: "Screen 1"
+                        elevation: 10
+                        left_action_items: [['menu', lambda x: nav_drawer.set_state("open")]]
+                    MDLabel:
+                        text: "Screen 1"
+            MDScreen:
+                name: "screen2"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    MDToolbar:
+                        title: "Electrocardiogramas"
+                        elevation: 10
+                        left_action_items: [['menu', lambda x: nav_drawer.set_state("open")]]
+                    FloatLayout: 
+                        ScrollView:
+                            MDList:
+                                id: ekg_list
+                        MDFloatingActionButton:
+                            icon: "plus-circle-outline"
+                            md_bg_color: app.theme_cls.accent_dark
+                            pos_hint: {'center_x':0.9, 'center_y':0.1}
+                            on_release: 
+                                screen_manager.current = 'new_ekg'
+                                screen_manager.transition.direction = 'left'
+            MDScreen:
+                name: "screen3"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    MDToolbar:
+                        title: "Screen 3"
+                        elevation: 10
+                        left_action_items: [['menu', lambda x: nav_drawer.set_state("open")]]
+                    MDLabel:
+                        text: "Screen 3"
+            MDScreen:
+                name: "screen4"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    MDToolbar:
+                        title: "Screen 4"
+                        elevation: 10
+                        left_action_items: [['menu', lambda x: nav_drawer.set_state("open")]]
+                    MDLabel:
+                        text: "Screen 4"
+            MDScreen:
+                name: "screen5"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    MDToolbar:
+                        title: "Screen 5"
+                        elevation: 10
+                        left_action_items: [['menu', lambda x: nav_drawer.set_state("open")]]
+                    MDLabel:
+                        text: "Screen 5"
+            MDScreen:
+                name: "new_ekg"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    MDToolbar:
+                        title: "Nuevo ECG"
+                        elevation: 10
+                        left_action_items: [['arrow-left', lambda *args : app.go_back("screen2")]]
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: 0.4
+                        MDBoxLayout:
+                            orientation: 'vertical'
+                            padding: 8
+                            spacing: 8
+                            MDLabel:
+                                text: "texto"
+                            MDLabel:
+                                text: "texto"
+                                canvas.before:
+                                    Color:
+                                        rgba: [1.0, 0.85, 0.85, 1.0]
+                                    Rectangle:
+                                        size: self.size
+                                        pos: self.pos
+                        MDBoxLayout:
+                            orientation: 'vertical'
+                            padding: 8
+                            spacing: 8
+                            MDLabel:
+                                text: "texto"
+                            MDLabel:
+                                text: "texto"
+                                canvas.before:
+                                    Color:
+                                        rgba: [1.0, 0.85, 0.85, 1.0]
+                                    Rectangle:
+                                        size: self.size
+                                        pos: self.pos
+                    MDBoxLayout:
+                        orientation: 'vertical'
+                        size_hint_y: 1
+                        ScrollView:
+                            do_scroll_x: True
+                            do_scroll_y: False
+                            effect_cls: 'ScrollEffect'
+                            Plot:
+                                id: ekg_new
+                                size_hint_x: None
+                                size_hint_y: None
+                                height: self.parent.height
+                                width: self.parent.width
+                                    
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: 0.2
+                        size_hint_x: None
+                        padding: self.width*0.1
+                        spacing: self.width*0.15
+                        MDRaisedButton:
+                            text: "FLATBUTTON1"
+                            pos_hint: {'center_y': 0.5}
+                            on_release: ekg_new.canvas.after.clear()
+                        MDRaisedButton:
+                            text: "FLATBUTTON2"
+                            pos_hint: {'center_y': 0.5}
+                            on_release: ekg_new.clear_ekg()
+                        MDRaisedButton:
+                            text: "FLATBUTTON3"
+                            pos_hint: {'center_y': 0.5}
+                            on_release: setattr(ekg_new, 'run_samples', True)
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        size_hint_y: 0.2
+                        spacing: 8
+                        MDLabel:
+                            text: "texto"
+                        MDLabel:
+                            text: "texto"
+            MDScreen:
+                name: "view_ekg"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    MDToolbar:
+                        id: view_ekg_toolbar
+                        title: "Nuevo ECG"
+                        elevation: 10
+                        left_action_items: [['arrow-left', lambda *args : app.go_back("screen2")]]
+                    MDGridLayout:
+                        id: ekg_info
+                        md_bg_color: app.theme_cls.primary_light
+                        adaptive_height: True
+                        cols: 2
+                        padding: [8, 8]
+                        spacing: [8, 8]
+                        row_force_default: True
+                        row_default_height: 32
+                        MDLabel:
+                            text: "texto 1"
+                        MDLabel:
+                            text: "texto 2"
+                        MDLabel:
+                            text: "texto 3"
+                        MDLabel:
+                            text: "texto 4"
+                    ScrollView:
+                        do_scroll_x: True
+                        do_scroll_y: False
+                        always_overscroll: False
+                        Plot:
+                            id: ekg_plot
+                            background_color: [1.0, 0.85, 0.85, 1.0]
+                            size_hint_x: None
+                            size_hint_y: 0.5
+                            width: self.parent.width*2
+                            canvas.before:
+                                Color:
+                                    rgba: self.background_color
+                                Rectangle:
+                                    size: self.size
+                                    pos: self.pos
+        MDNavigationDrawer:
+            id: nav_drawer
+            ContentNavigationDrawer:
+                id: content_drawer
+
+
+# MDScreen:
+#     name: "screen"
+#     BoxLayout:
+#         orientation: 'vertical'
+#          MDToolbar:
+#             title: "Navigation Drawer"
+#             elevation: 10
+#             left_action_items: [['menu', lambda x: nav_drawer.set_state("open")]]
+

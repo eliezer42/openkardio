@@ -11,9 +11,6 @@
 # Private Files
 *.json
 *.csv
-*.csv.gz
-*.tsv
-*.tsv.gz
 *.xlsx
 
 # Byte-compiled / optimized / DLL files
@@ -22,3 +19,6 @@ __pycache__/
 *$py.class
 
 .venv
+*/.buildozer
+*/bin
+*.db
