@@ -18,7 +18,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-.venv
+*/.venv
 */.buildozer
 */bin
 *.db
+/bak
+icon_selector.py

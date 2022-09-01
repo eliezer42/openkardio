@@ -1,13 +1,13 @@
 [app]
 
 # (str) Title of your application
-title = My Application
+title = OpenKardio
 
 # (str) Package name
-package.name = myapp
+package.name = com.openkardio
 
 # (str) Package domain (needed for android/ios packaging)
-package.domain = org.test
+package.domain = org.ok
 
 # (str) Source code where the main.py live
 source.dir = .
@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy==2.1.0,kivymd,pillow,numpy
+requirements = python3,kivy==2.1.0,kivymd==1.0.2,pillow,numpy,faker,dateutil,sqlalchemy==1.4.40,sqlalchemy_utils==0.38.3
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -93,7 +93,7 @@ fullscreen = 0
 #icon.adaptive_background.filename = %(source.dir)s/data/icon_bg.png
 
 # (list) Permissions
-#android.permissions = INTERNET
+android.permissions = INTERNET
 
 # (list) features (adds uses-feature -tags to manifest)
 #android.features = android.hardware.usb.host
@@ -102,7 +102,7 @@ fullscreen = 0
 android.api = 29
 
 # (int) Minimum API your APK / AAB will support.
-#android.minapi = 21
+android.minapi = 26
 
 # (int) Android SDK version to use
 #android.sdk = 20
@@ -134,7 +134,7 @@ android.api = 29
 # agreements. This is intended for automation only. If set to False,
 # the default, you will be shown the license when first running
 # buildozer.
-# android.accept_sdk_license = False
+android.accept_sdk_license = True
 
 # (str) Android entry point, default is ok for Kivy-based app
 #android.entrypoint = org.kivy.android.PythonActivity
