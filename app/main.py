@@ -1,4 +1,5 @@
 import firestore
+from os.path import join, dirname, realpath
 from datetime import date
 from kivy.lang import Builder
 from kivy.properties import StringProperty, ListProperty, ObjectProperty, BooleanProperty, NumericProperty
@@ -26,6 +27,12 @@ import utils
 import numpy as np
 import openkardio as ok
 import sqlalchemy
+
+from plyer import notification
+from plyer.utils import platform
+
+class NotificationDemo(MDBoxLayout):
+    pass
 
 class ContentNavigationDrawer(MDBoxLayout):
     pass
@@ -276,6 +283,22 @@ class OpenKardioApp(MDApp):
         self.root.ids.screen_manager.current = previous
         self.root.ids.screen_manager.transition.direction = "right"
     
+    def do_notify(self):
+        try:
+            title = self.root.ids.demo.ids.notification_title.text
+            message = self.root.ids.demo.ids.notification_text.text
+            kwargs = {'title': title, 'message': message}
+            if platform == 'android':
+                kwargs['app_name'] = "OpenKardio"
+                kwargs['app_icon'] = join(dirname(realpath(__file__)),
+                                            'plyer-icon.png')
+                notification.notify(**kwargs)
+            elif platform == 'linux':
+                print("***NOTIFICATION***")
+                print(kwargs)
+        except Exception as e:
+            logging.warning(e)
+
     def create_obj(self):
         obj_str = firestore.create_random_object()
         self.root.ids.out.text = obj_str
@@ -300,7 +323,7 @@ class OpenKardioApp(MDApp):
             "heart-pulse": {"text": "Exámenes", "target": "ekg_list_view"},
             "folder-account": {"text": "Pacientes", "target": "patient_list_view"},
             "cog": {"text": "Configuración", "target": "config"},
-            "help": {"text": "Inicio", "target": "homescreen"}
+            "help": {"text": "Ayuda", "target": "help"}
             }
         for item_name in drawer_items.keys():
             self.root.ids.content_drawer.ids.md_list.add_widget(

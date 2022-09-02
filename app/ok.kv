@@ -1,5 +1,25 @@
 #:kivy 2.1.0
 
+<NotificationDemo>:
+    orientation: 'vertical'
+    Widget:
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint: 1, None
+        TextInput:
+            id: notification_title
+            text: 'Put title here'
+            size_hint: 1, None
+        TextInput:
+            id: notification_text
+            text: 'Put message here'
+            size_hint: 1, None
+    MDRaisedButton:
+        text: 'Fancy Notification'
+        size_hint: 1, None
+        on_release: app.do_notify()
+    Widget:
+
 <ItemDrawer>:
     theme_text_color: "Custom"
     on_release: 
@@ -409,6 +429,8 @@ MDNavigationLayout:
             name: "help"
             title: "Ayuda"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            NotificationDemo:
+                id: demo
     MDNavigationDrawer:
         id: nav_drawer
         ContentNavigationDrawer:
