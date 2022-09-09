@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,https://github.com/kivy/plyer/archive/refs/heads/master.zip, kivy==2.1.0,kivymd==1.0.2,pillow,numpy,faker,dateutil,sqlalchemy==1.4.40,sqlalchemy_utils==0.38.3
+requirements = python3,plyer,kivy==2.1.0,kivymd==1.0.2,pillow,numpy,faker,dateutil,sqlalchemy==1.4.40,sqlalchemy_utils==0.38.3,bleak,async_to_sync,async_timeout,typing_extensions
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -175,7 +175,7 @@ android.accept_sdk_license = True
 
 # (list) List of Java files to add to the android project (can be java or a
 # directory containing the files)
-#android.add_src =
+android.add_src = ./java
 
 # (list) Android AAR archives to add
 #android.add_aars =
