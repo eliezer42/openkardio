@@ -288,11 +288,21 @@ MDNavigationLayout:
                 id: out
                 halign: "center"
             MDLabel:
-                text: "Home 1"
+                id: bt_out
                 halign: "center"
             MDRaisedButton:
                 text: "Create Random Object"
                 on_release: app.create_obj()
+            MDRaisedButton:
+                text: "Connect to OKDevice"
+                on_release: 
+                    app.running = True
+                    print('True')
+            MDRaisedButton:
+                text: "Disconnect from OKDevice"
+                on_release: 
+                    app.running = False
+                    print('False')
 
         ToolbarScreen:
             name: "user_detail_view"
@@ -384,13 +394,15 @@ MDNavigationLayout:
                 padding: self.width*0.1
                 spacing: self.width*0.15
                 MDRaisedButton:
-                    text: "FLATBUTTON2"
+                    text: "BUTTON2"
                     pos_hint: {'center_y': 0.5}
-                    on_release: ekg_new.clear_ekg()
+                    on_release: 
+                        ekg_new.clear_ekg()
+                        app.run_ble = False          
                 MDRaisedButton:
-                    text: "FLATBUTTON3"
+                    text: "FLAT"
                     pos_hint: {'center_y': 0.5}
-                    on_release: setattr(ekg_new, 'run_samples', True)
+                    on_release: app.run_ble.set()
         ToolbarScreen:
             name: "patient_list_view"
             title: "Pacientes"
