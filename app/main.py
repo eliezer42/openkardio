@@ -31,12 +31,10 @@ import pickle
 from kivy.logger import Logger
 import logging
 logging.Logger.manager.root = Logger
-
 import asyncio
-import bleak
-
 from plyer import notification
 from plyer.utils import platform
+import ble
 
 class NotificationDemo(MDBoxLayout):
     pass
@@ -77,7 +75,8 @@ class OKListItem(ThreeLineIconListItem):
     object_id = NumericProperty()
 
 class Plot(Widget):
-    sample_rate = 120
+    sample_rate = NumericProperty(120)
+    top_of_scale = NumericProperty(52800)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
     last_point = ListProperty([])
@@ -93,6 +92,9 @@ class Plot(Widget):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Clock.schedule_interval(self.update_plot,1/60.0)
+        self.time_generator = utils.time_gen(self.sample_rate)
+
+    def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)
 
     def on_size(self,*args):
@@ -118,13 +120,13 @@ class Plot(Widget):
 
     def on_ekg_samples(self,*args):
         self.width = max((len(self.ekg_samples)*self.subdiv_size/(self.sample_rate*self.SEC_PER_SUBDIV))+4*self.MARGINS, self.width)
-        logging.info(len(self.ekg_samples))
+        logging.info(f"sample received: {len(self.ekg_samples)}")
 
     def on_next_samples(self, *args):
         if len(self.next_samples):
             self.ekg_samples.extend(self.next_samples)
-            next_points = self.last_point + [(self.grid_x + next(self.time_generator)*self.subdiv_size/0.04,
-                                                np.interp(sample,[0,65535],[0,self.grid_height])) for sample in self.next_samples]
+            next_points = self.last_point + [(self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
+                                                np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])) for sample in self.next_samples]
             self.last_point = [next_points[-1]]
             with self.canvas.after:
                 Color(rgba=[0.,0.,0.,1.0])
@@ -166,6 +168,8 @@ class Plot(Widget):
     def clear_ekg(self):
         self.last_point = []
         self.ekg_samples = []
+        self.canvas.after.clear()
+        self.time_generator = utils.time_gen(self.sample_rate)
 
 class ExamList(MDList):
     sex_icons = {'M': 'face', 'F': 'face-woman'}
@@ -285,8 +289,18 @@ class OpenKardioApp(MDApp):
 
     def __init__(self):
         super().__init__()
-        self.ok_device = None
-        self.ble_cmd = 65
+        self.ble = ble.BleHandler(self, self.samples_handler)
+        self.running = True
+    
+    def samples_handler(self, sender, data):
+        """Simple notification handler which prints the data received."""
+        logging.info("{0}: {1}".format(sender, data))
+        samples = array.array('H', data).tolist()
+        if len(samples) > 1:
+            self.root.ids.new_ekg.next_samples = samples
+        else:
+            self.ble.stop_receiving()
+            logging.info("Exam terminated")
 
     def go_back(self, previous):
         self.root.ids.screen_manager.current = previous
@@ -318,9 +332,6 @@ class OpenKardioApp(MDApp):
         return Builder.load_file("ok.kv")
 
     def on_start(self):
-        self.run_ble = asyncio.Event()
-        self.exam_terminated = asyncio.Event()
-        self.start_exam = asyncio.Event()
         sex_list = ["Femenino", "Masculino"]
         self.root.ids.patient_form.sex_menu = MDDropdownMenu(caller = self.root.ids.patient_form.ids.sex, 
                                         width_mult = 3, 
@@ -341,54 +352,10 @@ class OpenKardioApp(MDApp):
             )
         
     def on_stop(self):
-        self.run_ble = False
+        self.running = False
 
-    def samples_handler(self, sender, data):
-        """Simple notification handler which prints the data received."""
-        print("{0}: {1}".format(sender, data))
-        samples = array.array('H', data).tolist()
-        if len(samples) > 1:
-            self.root.ids.ekg_new.next_samples = samples
-        else:
-            self.exam_terminated.set()
-            logging.info("Exam terminated")
-
-    async def ble_connection(self):
-        await self.run_ble.wait()
-        try:
-            logging.info("Scanning")
-            scanned_devices = await bleak.BleakScanner.discover(1)
-            logging.info("Scanned")
-            if len(scanned_devices) == 0:
-                raise bleak.exc.BleakError("No devices found")
-            scanned_devices.sort(key=lambda device: -device.rssi)
-            for device in scanned_devices:
-                logging.info(f"{device.name} {device.rssi}dB")
-                if device.name == "OKDevice":
-                    logging.info(f"Connecting to {device.name} ... {device.address}")
-                    toast(f"Connecting to {device.name}")
-                    self.ok_device = device
-                    break
-                raise bleak.exc.BleakError("No OpenKardio Device found")
-        except bleak.exc.BleakError as e:
-            logging.warning(f"ERROR {e}")
-            toast(e)
-        try:
-            async with bleak.BleakClient(self.ok_device) as client:
-                # await self.start_exam.wait()
-                value = await client.read_gatt_char("55498abf-77df-4dc4-89b2-107dab085034")
-                logging.warning("Control Value: {0}".format(value))
-                await client.write_gatt_char("55498abf-77df-4dc4-89b2-107dab085034", self.ble_cmd.to_bytes(1,'little'))
-                await client.start_notify("cba1d466-344c-4be3-ab3f-189f80dd7518", self.samples_handler)
-                await self.exam_terminated.wait()
-                await client.stop_notify("cba1d466-344c-4be3-ab3f-189f80dd7518")
-                logging.info("Exam finished")
-                # self.start_exam.clear()
-                self.exam_terminated.clear()
-        except bleak.exc.BleakError as e:
-            logging.warning(f"error {pickle.dumps(e)}")
 async def main(app):
-    await asyncio.gather(app.async_run("asyncio"), app.ble_connection())
+    await asyncio.gather(app.async_run("asyncio"), app.ble.connection_handler())
 
 if __name__ == "__main__":
     Logger.setLevel(logging.DEBUG)

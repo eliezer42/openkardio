@@ -374,7 +374,7 @@ MDNavigationLayout:
                     do_scroll_y: False
                     effect_cls: 'ScrollEffect'
                     Plot:
-                        id: ekg_new
+                        id: new_ekg
                         size_hint_x: None
                         size_hint_y: None
                         height: self.parent.height
@@ -396,13 +396,13 @@ MDNavigationLayout:
                 MDRaisedButton:
                     text: "BUTTON2"
                     pos_hint: {'center_y': 0.5}
-                    on_release: 
-                        ekg_new.clear_ekg()
-                        app.run_ble = False          
+                    on_release: app.ble.start_receiving(10)        
                 MDRaisedButton:
                     text: "FLAT"
                     pos_hint: {'center_y': 0.5}
-                    on_release: app.run_ble.set()
+                    on_release: 
+                        new_ekg.clear_ekg()
+                        app.ble.connect()
         ToolbarScreen:
             name: "patient_list_view"
             title: "Pacientes"

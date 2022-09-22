@@ -1,4 +1,3 @@
-from kivymd.uix.snackbar import Snackbar
 import time
 import numpy as np
 
@@ -92,6 +91,4 @@ def ekg_yield():
         for  i in y:
             yield i
 
-def print_snackbar(text):
-    Snackbar(text=text).open()
 

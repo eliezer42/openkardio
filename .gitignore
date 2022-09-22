@@ -24,3 +24,4 @@ __pycache__/
 *.db
 /bak
 icon_selector.py
+testing.py
