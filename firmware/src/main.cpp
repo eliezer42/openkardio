@@ -18,6 +18,7 @@
 
 // CONSTANTS definitions
 const uint16_t SAMPLE_RATE = 30;
+const uint16_t EXAM_END_FLAG = 0xFFFF;
 
 //// BLE definitions
 #define BLE_SERVER_NAME "OKDevice"
@@ -159,8 +160,8 @@ void state_send_cb(){
       Serial.println();
     }
     if(sample_count >= sample_limit){
-      sampleBuffer[0] = 0x00;
-      OKDataCharacteristic.setValue(sampleBuffer,1);
+
+      OKDataCharacteristic.setValue((uint8_t*)&EXAM_END_FLAG,2);
       OKDataCharacteristic.notify();
       exam_running = false;
     }
@@ -207,7 +208,11 @@ bool wait_to_conn(){
   return false;
 }
 bool wait_to_send(){
-  return exam_running;
+  if(exam_running){
+    blinker.detach();
+    return true;
+  }
+  return false;
 }
 
 bool send_to_idle(){
@@ -255,7 +260,7 @@ class OKServerCallbacks: public BLEServerCallbacks {
 class OKCtrlCallbacks: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     uint8_t* pData = pCharacteristic->getData();
-    int duration = (int)pData[0];
+    uint16_t duration = *(uint16_t*)pData;
     Serial.println(duration, HEX);
     if(duration > 20) duration = 20;
     sample_limit = duration*SAMPLE_RATE;
