@@ -6,67 +6,62 @@
 #include <BLEUtils.h>
 #include <BLE2902.h>
 #include <ADS1X15.h>
+#include "OKConfig.h"
+#include "lpfilter.h"
 
-// port definitions
-#define ANALOG_PIN 34
-#define ADC_RDY_PIN 23
-#define AD8232_LOM 4
-#define AD8232_LOP 0
-#define AD8232_SDN 2
-#define LED_PIN 5
-#define BUTTON_PIN 18
-
-// CONSTANTS definitions
-const uint16_t SAMPLE_RATE = 30;
-const uint16_t EXAM_END_FLAG = 0xFFFF;
-
-//// BLE definitions
-#define BLE_SERVER_NAME "OKDevice"
-#define SERVICE_UUID "5e6c5158-05d8-463b-b21d-eed2204c2002"
-#define OK_DATA_UUID "cba1d466-344c-4be3-ab3f-189f80dd7518"
-#define OK_CTRL_UUID "55498abf-77df-4dc4-89b2-107dab085034"
-BLECharacteristic OKDataCharacteristic(OK_DATA_UUID, BLECharacteristic::PROPERTY_NOTIFY);
+BLECharacteristic OKDataCharacteristic(OK_DATA_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY);
 BLECharacteristic OKCtrlCharacteristic(OK_CTRL_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
-
-// union definition
-union Sample{
-  volatile uint16_t raw;
-  volatile uint8_t bytes[2];
-} ekg_sample;
-
-// varaible declarations
-uint8_t sampleBuffer[12] = {0};
-int byte_count = 0;
-int sample_count = 0;
-int sample_limit = 0;
-int samples_per_frame = 6;
-float f = 0;
-
-// ISR flags
-volatile bool adc_ready = false;
+uint8_t error_code = 0x00;
+void send_flag(uint8_t flag){
+  uint8_t temp[1];
+  temp[0] = flag;
+  OKDataCharacteristic.setValue(temp,1);
+  OKDataCharacteristic.notify();
+}
+//// Variables declaration
+// Timer reference variable
+hw_timer_t *sampling_clock = NULL;
+// ISR variables
 volatile bool request = false;
 volatile long tic, toc = 0L;
-
-// timer initialization and function definitions
-hw_timer_t *timer = NULL;
-void IRAM_ATTR onTimer(){
-    request = true;
-    tic = micros();
+// Filter reference
+lpfilterType *pFilter = lpfilter_create();
+bool bFilterActive = false;
+uint16_t filter(uint16_t sample){
+  if(digitalRead(4)){
+    float input = float(sample);
+    lpfilter_writeInput(pFilter, input);
+    float output = lpfilter_readOutput(pFilter);
+    return uint16_t(output);
+  }
+  return sample;
 }
-void timer_setup(void){
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, (uint64_t)1000000/SAMPLE_RATE, true);
-}
-
-// ADC initialization and functions definitions
+// Ekg processing variables
+int byte_count = 0;
+sample ekg_sample;
+uint8_t sample_buffer[BUFFER_LENGTH];
+int16_t signal_offset = 0;
+// Device info
+info device_info = {
+  100,
+  SAMPLES_PER_FRAME,
+  EKG_SAMPLE_RATE,
+  FRONTEND_LEADS,
+  ADC_RESOLUTION,
+  FIRMWARE_MAJOR_VERSION,
+  FIRMWARE_MINOR_VERSION,
+  FRONTEND_GAIN*ADC_STEPS_PER_V,
+};
+bool dev_connected = false;
+bool exam_running = false;
+bool adc_connected = false;
+//ADS declaration and setup definition
 ADS1115 ADS(0x48);
 void adc_setup(void){
-  Serial.println(ADS.begin());
+  adc_connected = ADS.begin();
   ADS.setWireClock(400000U);
   ADS.setGain(1);     // 4.096 volt max range
   ADS.setDataRate(6); // 2.25 ms per conversion
-  f = ADS.toVoltage(); // voltage factor
   
   // set the thresholds to Trigger RDY pin
   ADS.setComparatorThresholdLow(0x0000);
@@ -74,105 +69,111 @@ void adc_setup(void){
   ADS.setComparatorQueConvert(0);             // enable RDY pin !!
   ADS.setComparatorLatch(0);
 }
-void IRAM_ATTR onAdcRdy() {
-    adc_ready = true;
-}
+// Ticker declarations
+Ticker led_blinker;
+Ticker batt_monitor;
 
-// Ticker definition
-Ticker blinker;
 void blink(int pattern) {
   static int counter = 0;
-  digitalWrite(LED_PIN, (pattern>>counter++)&0x01);
+  digitalWrite(STAT_LED_PIN, (pattern>>counter++)&0x01);
   if(counter>15) counter = 0;
 }
-
-uint16_t okFilter(uint16_t sample){
-  #ifdef FILTER
-    static uint16_t output = 0;
-    static uint32_t accumulator = 0;
-    accumulator = accumulator + sample - output;
-    output = accumulator >> 4; // where N = 1, 2, 3, 4, etc.
-    return output;
-  #else
-    return sample;
-  #endif
-}
-// FSM definition
+// FSM definitions and flags
 StateMachine machine = StateMachine();
-bool dev_connected = false;
-bool exam_running = false;
-
-void state_idle_cb(){
+void state_idle_cb(void){
   if(machine.executeOnce){
-    digitalWrite(LED_PIN, LOW);
-    timerAlarmDisable(timer);
-    detachInterrupt(ADC_RDY_PIN);
-    OKCtrlCharacteristic.setValue((uint8_t*)&SAMPLE_RATE,2);
-    Serial.println("State -> IDLE");
+    digitalWrite(STAT_LED_PIN, LOW);
+    Serial.println("State: IDLE");
   }
 }
-
-void state_conn_cb(){
+void state_conn_cb(void){
   if(machine.executeOnce){
-    blinker.attach_ms(100, blink, 0x5555); // 1 pulses every 200 ms
-    timerAlarmDisable(timer);
-    detachInterrupt(ADC_RDY_PIN);
-    Serial.println("State -> CONN");
+    led_blinker.attach_ms(100, blink, 0x5555); // 1 pulse every 200 ms
+    OKCtrlCharacteristic.setValue((uint8_t*)&device_info,sizeof(info));
+    Serial.println("State: CONN");
   }
 }
-
+void on_conn_exit(void){
+  led_blinker.detach();
+}
 void state_wait_cb(){
   if(machine.executeOnce){
-    sample_count = 0;
-    blinker.attach_ms(125, blink, 0x000A);  // 2 pulses every 2 segundos
-    timerAlarmEnable(timer);
-    attachInterrupt(ADC_RDY_PIN, onAdcRdy, RISING);
-    Serial.println("State -> WAIT");
+    led_blinker.attach_ms(125, blink, 0x000A);  // 2 pulses every 2 segundos
+    Serial.println("State: WAIT");
   }
 }
-
+void on_wait_exit(void){
+  led_blinker.detach();
+}
 void state_send_cb(){
   uint16_t newSample = 0;
   if(machine.executeOnce){
-    digitalWrite(LED_PIN, HIGH);
-    Serial.println("State -> SEND");
+    byte_count = 0;
+    signal_offset = ADS.readADC(0);
+    timerAlarmEnable(sampling_clock);
+    digitalWrite(STAT_LED_PIN, HIGH);
+    if(!adc_connected){
+      error_code = NO_ADC;
+      OKDataCharacteristic.setValue(&error_code,1);
+      OKDataCharacteristic.notify();
+    }
+    Serial.println("State: SEND");
   }
   if(request){
-    ADS.requestADC(0);
+    newSample = ADS.readADC(1)-signal_offset;
+    ekg_sample.raw = filter(newSample);
+    sample_buffer[byte_count++] = ekg_sample.bytes[0];
+    sample_buffer[byte_count++] = ekg_sample.bytes[1];
     request = false;
-  }
-  if(adc_ready){
-    newSample = ADS.getValue();
-    ekg_sample.raw = okFilter(newSample);
-    sampleBuffer[byte_count++] = ekg_sample.bytes[0];
-    sampleBuffer[byte_count++] = ekg_sample.bytes[1];
-    sample_count++;
     toc = micros();
-    if(byte_count >= samples_per_frame*2){
-      OKDataCharacteristic.setValue(sampleBuffer,byte_count);
+    Serial.print(toc-tic);
+    Serial.print(",");
+    if(byte_count/2 == SAMPLES_PER_FRAME){
+      tic = micros();
+      OKDataCharacteristic.setValue(sample_buffer,byte_count);
       OKDataCharacteristic.notify();
+      // for(int i = 0; i < byte_count; i++){
+      //   Serial.print(((uint16_t)sample_buffer[i] | (uint16_t)sample_buffer[++i]<<8)/ADC_STEPS_PER_V);
+      //   Serial.print("-");
+      // }
+      // Serial.println();
       byte_count = 0;
-      Serial.println(toc - tic);
-      for(int i = 0; i < samples_per_frame; i++){
-        Serial.print((uint16_t)sampleBuffer[2*i] | (uint16_t)sampleBuffer[2*i + 1]<<8, HEX);
-        Serial.print(" ");
-      }
+      toc = micros();
+      Serial.print(toc-tic);
       Serial.println();
     }
-    if(sample_count >= sample_limit){
-
-      OKDataCharacteristic.setValue((uint8_t*)&EXAM_END_FLAG,2);
-      OKDataCharacteristic.notify();
-      exam_running = false;
-    }
-    adc_ready = false;
-  }    
+  }   
 }
 
+void on_send_exit(void){
+  timerAlarmDisable(sampling_clock);
+}
 State* IDLE = machine.addState(&state_idle_cb);
 State* CONN = machine.addState(&state_conn_cb);
 State* WAIT = machine.addState(&state_wait_cb);
 State* SEND = machine.addState(&state_send_cb);
+
+void IRAM_ATTR onSamplingClock(){
+    request = true;
+    tic = micros();
+}
+
+void timer_setup(void){
+  sampling_clock = timerBegin(0, 80, true);
+  timerAttachInterrupt(sampling_clock, &onSamplingClock, true);
+  timerAlarmWrite(sampling_clock, (uint64_t)1000000/EKG_SAMPLE_RATE, true);
+}
+
+void measure_batt(void){
+  float voltage_level;
+  voltage_level = analogReadMilliVolts(35)*2.0/1000.0; // factor 2 for compensating the voltage divider the pin 35 is attached to
+  device_info.battery_level = 10 * int(floor(10.0 * (voltage_level - MIN_BATTERY_VOLTAGE) / (MAX_BATTERY_VOLTAGE - MIN_BATTERY_VOLTAGE)));
+  if(machine.isInState(CONN) | machine.isInState(WAIT)) OKCtrlCharacteristic.setValue((uint8_t*)&device_info,sizeof(info));
+}
+
+bool leads_off(void){
+  return (digitalRead(AD8232_LODM) || digitalRead(AD8232_LODP));
+}
 
 bool idle_to_conn(){
   return dev_connected;
@@ -180,14 +181,15 @@ bool idle_to_conn(){
 
 bool conn_to_idle(){
   if(!dev_connected){
-    blinker.detach();
+    on_conn_exit();
     return true;
   }
   return false;
 }
 bool conn_to_wait(){
-  if((bool)(digitalRead(AD8232_LOM) && digitalRead(AD8232_LOP))){
-    blinker.detach();
+  if(!leads_off()){
+    Serial.println(digitalRead(AD8232_LODP));
+    on_conn_exit();
     return true;
   }
   return false;
@@ -195,21 +197,22 @@ bool conn_to_wait(){
 
 bool wait_to_idle(){
   if(!dev_connected){
-    blinker.detach();
+    on_wait_exit();
     return true;
   }
   return false;
 }
 bool wait_to_conn(){
-  if(!(bool)(digitalRead(AD8232_LOM) && digitalRead(AD8232_LOP))){
-    blinker.detach();
+  if(leads_off()){
+    Serial.println(digitalRead(AD8232_LODP));
+    on_wait_exit();
     return true;
   }
   return false;
 }
 bool wait_to_send(){
   if(exam_running){
-    blinker.detach();
+    on_wait_exit();
     return true;
   }
   return false;
@@ -217,12 +220,14 @@ bool wait_to_send(){
 
 bool send_to_idle(){
   if(!dev_connected){
+    exam_running = false;
     return true;
   }
   return false;
 }
 bool send_to_conn(){
-  if(!(bool)(digitalRead(AD8232_LOM) && digitalRead(AD8232_LOP))){
+  if(leads_off()){
+    send_flag(LEADS_OFF);
     return true;
   }
   return false;
@@ -230,7 +235,6 @@ bool send_to_conn(){
 bool send_to_wait(){
   return !exam_running;
 }
-
 
 void sm_setup(void){
   IDLE->addTransition(&idle_to_conn,CONN);
@@ -260,18 +264,36 @@ class OKServerCallbacks: public BLEServerCallbacks {
 class OKCtrlCallbacks: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     uint8_t* pData = pCharacteristic->getData();
-    uint16_t duration = *(uint16_t*)pData;
-    Serial.println(duration, HEX);
-    if(duration > 20) duration = 20;
-    sample_limit = duration*SAMPLE_RATE;
-    samples_per_frame = 6;
-    exam_running = true;
+    switch(pData[COMMAND]){
+      case 0x00:
+      if(machine.isInState(WAIT)) exam_running = true; 
+      else send_flag(LEADS_OFF);
+      break;
+      case 0x10:
+      bFilterActive = false;
+      break;
+      case 0x11:
+      bFilterActive = true;
+      break;
+      case 0xA1:
+      device_info.sample_rate = pData[PAYLOAD]*10;
+      break;
+      case 0xA2:
+      device_info.samples_per_frame = pData[PAYLOAD];
+      break;
+      case 0xFF:
+      if(machine.isInState(SEND)) exam_running = false;
+      break;
+      default:
+      break;
+    }
   }
 };
 
 void ble_setup(void){
     // Create the BLE Device
   BLEDevice::init(BLE_SERVER_NAME);
+  BLEDevice::setMTU(BLE_L2CAP_MTU);
   // Create the BLE Server
   BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new OKServerCallbacks());
@@ -292,20 +314,21 @@ void ble_setup(void){
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pServer->getAdvertising()->start();
-  OKCtrlCharacteristic.setValue((uint8_t*)&SAMPLE_RATE,2);
-  Serial.println("Waiting a client connection to notify...");
+  Serial.println("Waiting a client connection..");
 }
 
 void setup() {
   Serial.begin(115200);
-  pinMode(ADC_RDY_PIN, INPUT);
-  pinMode(LED_PIN, OUTPUT);
-  pinMode(AD8232_LOM, INPUT_PULLUP);
-  pinMode(AD8232_LOP, INPUT_PULLUP);
+  pinMode(STAT_LED_PIN, OUTPUT);
+  pinMode(AD8232_LODM, INPUT);
+  pinMode(AD8232_LODP, INPUT);
+  pinMode(4, INPUT);
+  lpfilter_init(pFilter);
   timer_setup();
   adc_setup();
   sm_setup();
   ble_setup();
+  batt_monitor.attach(6, measure_batt);
 }
 
 void loop() {
