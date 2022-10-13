@@ -76,7 +76,7 @@ class OKListItem(ThreeLineIconListItem):
 
 class Plot(Widget):
     sample_rate = NumericProperty(120)
-    top_of_scale = NumericProperty(52800)
+    top_of_scale = NumericProperty(26400)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
     last_point = ListProperty([])
@@ -289,18 +289,23 @@ class OpenKardioApp(MDApp):
 
     def __init__(self):
         super().__init__()
-        self.ble = ble.BleHandler(self, self.samples_handler)
+        self.ble = ble.BleHandler(self.frame_handler)
         self.running = True
     
-    def samples_handler(self, sender, data):
+    def frame_handler(self, sender, data):
         """Simple notification handler which prints the data received."""
         logging.info("{0}: {1}".format(sender, data))
-        samples = array.array('H', data).tolist()
-        if len(samples) > 1:
-            self.root.ids.new_ekg.next_samples = samples
-        else:
+        if len(data) == 1:
             self.ble.stop_receiving()
-            logging.info("Exam terminated")
+            logging.error(f"Frame: Error while receiving frame.")
+            toast("Ocurrió un error desconocido")
+        else:
+            try:
+                samples = array.array('h', data).tolist()
+                self.root.ids.new_ekg.next_samples = samples
+            except Exception as e:
+                logging.error(f"Frame: Error while decoding frame.")
+                logging.error(f"Frame: {e}")
 
     def go_back(self, previous):
         self.root.ids.screen_manager.current = previous

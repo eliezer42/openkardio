@@ -394,11 +394,11 @@ MDNavigationLayout:
                 padding: self.width*0.1
                 spacing: self.width*0.15
                 MDRaisedButton:
-                    text: "BUTTON2"
+                    text: "EMPEZAR"
                     pos_hint: {'center_y': 0.5}
-                    on_release: app.ble.start_receiving(10)        
+                    on_release: app.ble.toogle_reception()        
                 MDRaisedButton:
-                    text: "FLAT"
+                    text: "CONECTAR"
                     pos_hint: {'center_y': 0.5}
                     on_release: 
                         new_ekg.clear_ekg()

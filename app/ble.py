@@ -1,6 +1,7 @@
 import asyncio
 import array
 from random import sample
+from symbol import varargslist
 import bleak
 import pickle
 from kivy.logger import Logger
@@ -8,33 +9,51 @@ import logging
 from kivymd.toast import toast
 logging.Logger.manager.root = Logger
 from kivymd.app import MDApp
+import struct
 
 class BleHandler:
-    def __init__(self, app, samples_handler) -> None:
-        self.samples_handler = samples_handler
-        self.openkardio_device = None
-        self.openkardio_cmd = 10
+    def __init__(self, frame_handler) -> None:
+        self.frame_handler = frame_handler
+        self.device = None
+        self.cmd = 0
 
-    def start_receiving(self, cmd):
-        assert cmd > 0
-        if(self.run_ble.is_set()):
-            self.openkardio_cmd = min(cmd, 65535)
-            self.start_exam.set()
+    def toogle_reception(self):
+        if self.run_ble.is_set():
+            if self.start_exam.is_set():
+                self.finish_exam.set()
+            else:
+                self.start_exam.set()
+            
         else:
             toast("OpenKardio not connected")
 
-    def stop_receiving(self):
-        self.finish_exam.set()
-
     def connect(self):
         self.run_ble.set()
+    
+    def parse_device_info(self, value):
+        assert len(value) == 16
+        self.battery_level = value[0]
+        self.samples_per_frame = value[1]
+        self.sample_rate = int.from_bytes(value[2:4],'little')
+        self.lead_count = value[4]
+        self.resolution = value[5]
+        self.fw_version = str(value[6]) + '.' + str(value[7])
+        self.conversion_factor = struct.unpack('d', value[8:])
+        logging.info(f"FW: {self.fw_version}")
+        logging.info(f"LC: {self.lead_count}")
+        logging.info(f"BR: {self.resolution}")
+        logging.info(f"SR: {self.sample_rate}")
+        logging.info(f"SF: {self.samples_per_frame}")
+        logging.info(f"BL: {self.battery_level}")
+        logging.info(f"CV: {self.conversion_factor}")
+
 
     async def connection_handler(self):
         self.run_ble = asyncio.Event()
         self.finish_exam = asyncio.Event()
         self.start_exam = asyncio.Event()
         while MDApp.get_running_app().running:
-            await self.run_ble.wait()
+            await self.run_ble.wait()                               ## WAIT EVENT
             try:
                 logging.info("Scanning")
                 scanned_devices = await bleak.BleakScanner.discover(1)
@@ -45,25 +64,32 @@ class BleHandler:
                     if device.name == "OKDevice":
                         logging.info(f"Connecting to {device.name}: {device.rssi} dB")
                         toast(f"Connecting to {device.name}: {device.rssi} dB")
-                        self.openkardio_device = device
+                        self.device = device
                         break
                     raise bleak.exc.BleakError("No OpenKardio Device found")
             except bleak.exc.BleakError as e:
                 logging.warning(f"ERROR while scanning: {e}")
                 toast(e)
+                self.run_ble.clear()
+                continue
             try:
-                async with bleak.BleakClient(self.openkardio_device) as client:
-                    openkardio_sample_rate = await client.read_gatt_char("55498abf-77df-4dc4-89b2-107dab085034")
-                    MDApp.get_running_app().root.ids.new_ekg.sample_rate = int.from_bytes(openkardio_sample_rate, 'little')
-                    logging.warning("Control Value: {0}".format(openkardio_sample_rate))
-                    await self.start_exam.wait()
-                    await client.start_notify("cba1d466-344c-4be3-ab3f-189f80dd7518", self.samples_handler)
-                    await client.write_gatt_char("55498abf-77df-4dc4-89b2-107dab085034", self.openkardio_cmd.to_bytes(2,'little'))
+                async with bleak.BleakClient(self.device) as client:
+                    raw_device_info = await client.read_gatt_char("5e6c5002-05d8-463b-b21d-eed2204c2002")
+                    self.parse_device_info(raw_device_info)
+                    MDApp.get_running_app().root.ids.new_ekg.sample_rate = self.sample_rate
+                    logging.warning("Control Value: {0}".format(self.sample_rate))
+                    await self.start_exam.wait()                    ## WAIT EVENT
+                    await client.start_notify("5e6c5001-05d8-463b-b21d-eed2204c2002", self.frame_handler)
+                    await asyncio.sleep(0.12)
+                    await client.write_gatt_char("5e6c5002-05d8-463b-b21d-eed2204c2002", b'\x00')
                     await self.finish_exam.wait()
-                    await client.stop_notify("cba1d466-344c-4be3-ab3f-189f80dd7518")
+                    await client.write_gatt_char("5e6c5002-05d8-463b-b21d-eed2204c2002", b'\xff')
+                    await client.stop_notify("5e6c5001-05d8-463b-b21d-eed2204c2002")
                     logging.info("Exam finished")
                     self.start_exam.clear()
                     self.finish_exam.clear()
             except bleak.exc.BleakError as e:
                 logging.warning(f"Error while connecting: {pickle.dumps(e)}")
+            except AssertionError as e:
+                logging.warning(f"Error while parsing device info: {e}")
             self.run_ble.clear()
