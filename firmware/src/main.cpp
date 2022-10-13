@@ -27,12 +27,12 @@ volatile long tic, toc = 0L;
 // Filter reference
 lpfilterType *pFilter = lpfilter_create();
 bool bFilterActive = false;
-uint16_t filter(uint16_t sample){
-  if(digitalRead(4)){
+int16_t filter(int16_t sample){
+  if(bFilterActive){
     float input = float(sample);
     lpfilter_writeInput(pFilter, input);
     float output = lpfilter_readOutput(pFilter);
-    return uint16_t(output);
+    return int16_t(output);
   }
   return sample;
 }
@@ -88,28 +88,20 @@ void state_idle_cb(void){
 }
 void state_conn_cb(void){
   if(machine.executeOnce){
-    led_blinker.attach_ms(100, blink, 0x5555); // 1 pulse every 200 ms
+    led_blinker.attach_ms(125, blink, 0x000A);  // 2 pulses every 2 segundos
     OKCtrlCharacteristic.setValue((uint8_t*)&device_info,sizeof(info));
     Serial.println("State: CONN");
   }
 }
 void on_conn_exit(void){
   led_blinker.detach();
-}
-void state_wait_cb(){
-  if(machine.executeOnce){
-    led_blinker.attach_ms(125, blink, 0x000A);  // 2 pulses every 2 segundos
-    Serial.println("State: WAIT");
-  }
-}
-void on_wait_exit(void){
-  led_blinker.detach();
+  digitalWrite(STAT_LED_PIN, LOW);
 }
 void state_send_cb(){
   uint16_t newSample = 0;
   if(machine.executeOnce){
     byte_count = 0;
-    signal_offset = ADS.readADC(0);
+    signal_offset = ADS.readADC(0)>1;
     timerAlarmEnable(sampling_clock);
     digitalWrite(STAT_LED_PIN, HIGH);
     if(!adc_connected){
@@ -126,8 +118,9 @@ void state_send_cb(){
     sample_buffer[byte_count++] = ekg_sample.bytes[1];
     request = false;
     toc = micros();
-    Serial.print(toc-tic);
-    Serial.print(",");
+    Serial.println(ekg_sample.raw);
+    // Serial.print(toc-tic);
+    // Serial.print(",");
     if(byte_count/2 == SAMPLES_PER_FRAME){
       tic = micros();
       OKDataCharacteristic.setValue(sample_buffer,byte_count);
@@ -139,18 +132,18 @@ void state_send_cb(){
       // Serial.println();
       byte_count = 0;
       toc = micros();
-      Serial.print(toc-tic);
-      Serial.println();
+      // Serial.print(toc-tic);
+      // Serial.println();
     }
   }   
 }
 
 void on_send_exit(void){
   timerAlarmDisable(sampling_clock);
+  digitalWrite(STAT_LED_PIN, LOW);
 }
 State* IDLE = machine.addState(&state_idle_cb);
 State* CONN = machine.addState(&state_conn_cb);
-State* WAIT = machine.addState(&state_wait_cb);
 State* SEND = machine.addState(&state_send_cb);
 
 void IRAM_ATTR onSamplingClock(){
@@ -168,11 +161,7 @@ void measure_batt(void){
   float voltage_level;
   voltage_level = analogReadMilliVolts(35)*2.0/1000.0; // factor 2 for compensating the voltage divider the pin 35 is attached to
   device_info.battery_level = 10 * int(floor(10.0 * (voltage_level - MIN_BATTERY_VOLTAGE) / (MAX_BATTERY_VOLTAGE - MIN_BATTERY_VOLTAGE)));
-  if(machine.isInState(CONN) | machine.isInState(WAIT)) OKCtrlCharacteristic.setValue((uint8_t*)&device_info,sizeof(info));
-}
-
-bool leads_off(void){
-  return (digitalRead(AD8232_LODM) || digitalRead(AD8232_LODP));
+  if(machine.isInState(CONN)) OKCtrlCharacteristic.setValue((uint8_t*)&device_info,sizeof(info));
 }
 
 bool idle_to_conn(){
@@ -186,33 +175,10 @@ bool conn_to_idle(){
   }
   return false;
 }
-bool conn_to_wait(){
-  if(!leads_off()){
-    Serial.println(digitalRead(AD8232_LODP));
-    on_conn_exit();
-    return true;
-  }
-  return false;
-}
 
-bool wait_to_idle(){
-  if(!dev_connected){
-    on_wait_exit();
-    return true;
-  }
-  return false;
-}
-bool wait_to_conn(){
-  if(leads_off()){
-    Serial.println(digitalRead(AD8232_LODP));
-    on_wait_exit();
-    return true;
-  }
-  return false;
-}
-bool wait_to_send(){
+bool conn_to_send(){
   if(exam_running){
-    on_wait_exit();
+    on_conn_exit();
     return true;
   }
   return false;
@@ -225,27 +191,17 @@ bool send_to_idle(){
   }
   return false;
 }
+
 bool send_to_conn(){
-  if(leads_off()){
-    send_flag(LEADS_OFF);
-    return true;
-  }
-  return false;
-}
-bool send_to_wait(){
   return !exam_running;
 }
 
 void sm_setup(void){
   IDLE->addTransition(&idle_to_conn,CONN);
   CONN->addTransition(&conn_to_idle,IDLE);
-  CONN->addTransition(&conn_to_wait,WAIT);
-  WAIT->addTransition(&wait_to_idle,IDLE);
-  WAIT->addTransition(&wait_to_conn,CONN);
-  WAIT->addTransition(&wait_to_send,SEND);
+  CONN->addTransition(&conn_to_send,SEND);
   SEND->addTransition(&send_to_idle,IDLE);
   SEND->addTransition(&send_to_conn,CONN);
-  SEND->addTransition(&send_to_wait,WAIT);
 }
 
 // BLE Callbacks
@@ -266,8 +222,7 @@ class OKCtrlCallbacks: public BLECharacteristicCallbacks {
     uint8_t* pData = pCharacteristic->getData();
     switch(pData[COMMAND]){
       case 0x00:
-      if(machine.isInState(WAIT)) exam_running = true; 
-      else send_flag(LEADS_OFF);
+      exam_running = true; 
       break;
       case 0x10:
       bFilterActive = false;
@@ -320,8 +275,6 @@ void ble_setup(void){
 void setup() {
   Serial.begin(115200);
   pinMode(STAT_LED_PIN, OUTPUT);
-  pinMode(AD8232_LODM, INPUT);
-  pinMode(AD8232_LODP, INPUT);
   pinMode(4, INPUT);
   lpfilter_init(pFilter);
   timer_setup();
