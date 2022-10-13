@@ -1,15 +1,10 @@
 import asyncio
-import array
-from random import sample
-from symbol import varargslist
 import bleak
 import pickle
-from kivy.logger import Logger
 import logging
-from kivymd.toast import toast
-logging.Logger.manager.root = Logger
-from kivymd.app import MDApp
 import struct
+from kivymd.toast import toast
+from kivymd.app import MDApp
 
 class BleHandler:
     def __init__(self, frame_handler) -> None:
@@ -23,7 +18,6 @@ class BleHandler:
                 self.finish_exam.set()
             else:
                 self.start_exam.set()
-            
         else:
             toast("OpenKardio not connected")
 

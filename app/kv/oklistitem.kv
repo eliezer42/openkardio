@@ -1,0 +1,11 @@
+#:kivy 2.1.0
+#:import OKListItem oklistitem
+
+<OKListItem>:
+    on_release:
+        app.root.ids.screen_manager.get_screen(root.screen).title = root.text
+        app.root.ids.screen_manager.get_screen(root.screen).object_id = root.object_id
+        app.root.ids.screen_manager.current = root.screen
+        app.root.ids.screen_manager.transition.direction = 'left'
+    IconLeftWidget:
+        icon: root.icon

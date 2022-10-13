@@ -1,5 +1,5 @@
+import logging
 from kivy.utils import platform
-import json
 from faker import Faker
 fake = Faker()
 if platform == 'android':

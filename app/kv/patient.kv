@@ -1,0 +1,193 @@
+#:kivy 2.1.0
+#:import * patient
+<PatientList>:
+
+<PatientDetail>:
+    orientation: 'vertical'
+    adaptive_height: True
+    padding: "8dp"
+    spacing: "8dp"
+    OKCard:
+        orientation: "vertical"
+        elevation: 8
+        padding: "8dp"
+        spacing: "8dp"
+        size_hint: 0.9, 0.45
+        pos_hint: {"center_x": .5, "center_y": .5}
+        md_bg_color: 0.2, 0.1, 0.5, 0.8
+        border_radius: "8dp"
+        MDLabel:
+            text: "Información General"
+            theme_text_color: "Secondary"
+            font_style: "H6"
+            size_hint_y: None
+            height: self.texture_size[1]
+        MDBoxLayout:
+            orientation: "horizontal"
+            adaptive_height: True
+            padding: "8dp"
+            spacing: "8dp"
+            MDIcon:
+                halign: "center"
+                icon: root.sex_icon
+                size_hint: 0.2, None
+                height: "64dp"
+            MDLabel:
+                id: name
+                size_hint_y: 1
+                font_style: "Subtitle2"
+                valign: "center"
+                halign: "left"
+        MDSeparator:
+            height: "1dp"
+        MDLabel:
+            id: age
+            size_hint_y: None
+            height: self.texture_size[1]
+        MDLabel:
+            id: identification
+            size_hint_y: None
+            height: self.texture_size[1]
+        MDLabel:
+            id: record
+            size_hint_y: None
+            height: self.texture_size[1]
+        MDLabel:
+            id: address
+            size_hint_y: None
+            height: self.texture_size[1]
+        MDLabel:
+            id: contact
+            size_hint_y: None
+            height: self.texture_size[1]
+    Widget:
+
+<FormField>:
+    orientation: 'horizontal'
+    adaptive_height: True
+    padding: "8dp"
+    spacing: "8dp"
+    MDLabel:
+        text: root.label
+        size_hint_x: 0.4
+        halign: "right"
+        valign: "bottom"
+
+<PatientForm>:
+    orientation: 'vertical'
+    padding: ["60dp", "8dp", "80dp", "8dp"]
+    spacing: "8dp"
+    adaptive_height: True
+    MDLabel:
+        text: root.header
+        halign: "center"
+        font_style: "H6"
+    FormField:
+        id: first_name
+        label: "Nombres:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Nombres del paciente"
+            multiline: False
+            error: self.parent.error
+            required: True
+            helper_text_mode: "on_error"
+            helper_text: "Requerido"
+            on_text: self.parent.value = self.text
+    FormField:
+        id: last_name
+        label: "Apellidos:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Apellidos del paciente"
+            multiline: False
+            error: self.parent.error
+            required: True
+            helper_text_mode: "on_error"
+            helper_text: "Requerido"
+            on_text: self.parent.value = self.text
+    FormField:
+        id: address
+        label: "Domicilio:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Dirección convencional"
+            multiline: False
+            on_text: self.parent.value = self.text
+    FormField:
+        id: identification
+        label: "Cédula:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Cédula de identidad"
+            multiline: False
+            max_text_length: 16
+            min_text_length: 14
+            on_text: self.parent.value = self.text
+    FormField:
+        id: sex
+        label: "Sexo:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Seleccione el sexo presionando aquí"
+            multiline: False
+            required: True
+            error: self.parent.error
+            helper_text_mode: "on_error"
+            helper_text: "Requerido"
+            icon_right: "arrow-down-drop-cirle-outline"
+            on_focus: if self.focus: app.root.ids.patient_form.sex_menu.open()
+            on_text: self.parent.value = self.text[0] if len(self.text) else ""
+    FormField:
+        id: birth_date
+        label: "Fecha de nacimiento:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Seleccione la fecha (dd/mm/aaaa)*"
+            multiline: False
+            required: True
+            helper_text_mode: "on_error"
+            helper_text: "Requerido"
+            icon_right: "calendar"
+            on_focus: if self.focus: root.show_date_picker()
+    FormField:
+        id: record
+        label: "Expediente:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Ingrese número de expediente*"
+            multiline: False
+            required: True
+            helper_text_mode: "on_error"
+            helper_text: "Requerido"
+            on_text: self.parent.value = self.text
+    FormField:
+        id: med_conditions
+        label: "Condiciones médicas:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Ingrese padecimientos del paciente"
+            multiline: True
+            on_text: self.parent.value = self.text
+    FormField:
+        id: emergency_contact
+        label: "Contacto de emergencia:"
+        MDTextField:
+            text: self.parent.text
+            hint_text: "Ingrese nombre, parentesco y número de teléfono"
+            multiline: True
+            on_text: self.parent.value = self.text
+    MDBoxLayout:
+        orientation: 'horizontal'
+        adaptive_height: True
+        padding: "8dp"
+        spacing: "8dp"
+        Widget:
+        MDRaisedButton:
+            text: "OK"
+            on_release: 
+                app.root.ids.patient_detail.populate(root.save_form())
+                app.root.ids.screen_manager.current = "patient_detail_view"
+        MDFlatButton:
+            text: "CANCEL"
+            on_release: app.go_back("patient_list_view")

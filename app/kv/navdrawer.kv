@@ -1,0 +1,45 @@
+#:kivy 2.1.0
+#:import * navdrawer
+
+<ItemDrawer>:
+    theme_text_color: "Custom"
+    on_release: 
+        self.parent.set_color_item(self)
+        app.root.ids.screen_manager.current = root.screen
+        app.root.ids.nav_drawer.set_state("close")
+        app.root.ids.screen_manager.transition.direction = 'left'
+
+    IconLeftWidget:
+        id: icon
+        icon: root.icon
+        theme_text_color: "Custom"
+        text_color: root.text_color 
+
+<ContentNavigationDrawer>:
+    orientation: "vertical"
+    padding: "8dp"
+    spacing: "8dp"
+    AnchorLayout:
+        anchor_x: "left"
+        size_hint_y: None
+        height: avatar.height
+
+        Image:
+            id: avatar
+            size_hint: None, None
+            size: "56dp", "56dp"
+            source: "data/logo/kivy-icon-256.png"
+
+    MDLabel:
+        text: "OpenKardio"
+        font_style: "Button"
+        adaptive_height: True
+
+    MDLabel:
+        text: "openkardio@gmail.com"
+        font_style: "Caption"
+        adaptive_height: True
+
+    ScrollView:
+        DrawerList:
+            id: md_list

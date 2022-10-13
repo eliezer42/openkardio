@@ -1,0 +1,178 @@
+#:kivy 2.1.0
+#:include kv/exam.kv
+#:include kv/navdrawer.kv
+#:include kv/notification.kv
+#:include kv/oklistitem.kv
+#:include kv/patient.kv
+#:include kv/toolbarscreen.kv
+
+MDNavigationLayout:
+    ScreenManager:
+        id: screen_manager
+        ToolbarScreen:
+            name: "homescreen"
+            title: "ABC"
+            action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            MDLabel:
+                id: out
+                halign: "center"
+            MDLabel:
+                id: bt_out
+                halign: "center"
+            MDRaisedButton:
+                text: "Create Random Object"
+                on_release: app.create_obj()
+            MDRaisedButton:
+                text: "Connect to OKDevice"
+                on_release: 
+                    app.running = True
+                    print('True')
+            MDRaisedButton:
+                text: "Disconnect from OKDevice"
+                on_release: 
+                    app.running = False
+                    print('False')
+
+        ToolbarScreen:
+            name: "user_detail_view"
+            title: "Usuario"
+            action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+        ToolbarScreen:
+            name: "ekg_list_view"
+            title: "Exámenes"
+            action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            on_enter: app.root.ids.exam_list.populate()
+            ScrollView:
+                ExamList:
+                    id: exam_list
+            MDFloatingActionButton:
+                icon: "plus-circle-outline"
+                md_bg_color: app.theme_cls.accent_dark
+                pos_hint: {'center_x':0.9, 'center_y':0.1}
+                on_release: 
+                    screen_manager.current = 'ekg_create_view'
+                    screen_manager.transition.direction = 'left'
+        ToolbarScreen:
+            name: "ekg_detail_view"
+            title: "View ekg"
+            action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
+            MDGridLayout:
+                id: ekg_info
+                md_bg_color: app.theme_cls.primary_light
+                adaptive_height: True
+                cols: 2
+                padding: [8, 8]
+                spacing: [8, 8]
+                row_force_default: True
+                row_default_height: 32
+                MDLabel:
+                    text: "texto 1"
+                MDLabel:
+                    text: "texto 2"
+                MDLabel:
+                    text: "texto 3"
+                MDLabel:
+                    text: "texto 4"
+        ToolbarScreen:
+            name: "ekg_create_view"
+            title: "Nuevo EKG"
+            action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
+            MDBoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.4
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    padding: 8
+                    spacing: 8
+                    MDLabel:
+                        text: "texto"
+                    MDLabel:
+                        text: "texto"
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    padding: 8
+                    spacing: 8
+                    MDLabel:
+                        text: "texto"
+                    MDLabel:
+                        text: "texto"
+            MDBoxLayout:
+                orientation: 'vertical'
+                size_hint_y: 1
+                ScrollView:
+                    do_scroll_y: False
+                    effect_cls: 'ScrollEffect'
+                    Plot:
+                        id: new_ekg
+                        size_hint_x: None
+                        size_hint_y: None
+                        height: self.parent.height
+                        width: self.parent.width 
+                        MDBoxLayout:
+                            orientation: 'horizontal'
+                            size_hint_y: 0.2
+                            spacing: 8
+                            MDLabel:
+                                text: "texto"
+                            MDLabel:
+                                text: "texto"
+            MDBoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: 0.2
+                size_hint_x: None
+                padding: self.width*0.1
+                spacing: self.width*0.15
+                MDRaisedButton:
+                    text: "EMPEZAR"
+                    pos_hint: {'center_y': 0.5}
+                    on_release: app.ble.toogle_reception()        
+                MDRaisedButton:
+                    text: "CONECTAR"
+                    pos_hint: {'center_y': 0.5}
+                    on_release: 
+                        new_ekg.clear_ekg()
+                        app.ble.connect()
+        ToolbarScreen:
+            name: "patient_list_view"
+            title: "Pacientes"
+            action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            on_enter: app.root.ids.patient_list.populate()
+            ScrollView:
+                PatientList:
+                    id: patient_list
+            MDFloatingActionButton:
+                icon: "plus-circle-outline"
+                md_bg_color: app.theme_cls.accent_dark
+                pos_hint: {'center_x':0.9, 'center_y':0.1}
+                on_release: 
+                    screen_manager.current = 'patient_create_view'
+                    screen_manager.transition.direction = 'left'
+        ToolbarScreen:
+            name: "patient_detail_view"
+            title: "View Patient"
+            action_items: [['arrow-left', lambda *args : app.go_back("patient_list_view")]]
+            on_enter: app.root.ids.patient_detail.populate(self.object_id)
+            PatientDetail:
+                id: patient_detail
+        ToolbarScreen:
+            name: "patient_create_view"
+            title: "Nuevo paciente"
+            action_items: [['arrow-left', lambda *args : app.go_back("patient_list_view")]]
+            ScrollView:
+                PatientForm:
+                    id: patient_form
+                    header: "Ingrese información solicitada"
+        ToolbarScreen:
+            name: "config"
+            title: "Configuración"
+            action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+        ToolbarScreen:
+            name: "help"
+            title: "Ayuda"
+            action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            NotificationDemo:
+                id: demo
+    MDNavigationDrawer:
+        id: nav_drawer
+        ContentNavigationDrawer:
+            id: content_drawer
