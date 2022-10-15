@@ -2,7 +2,7 @@
 #:include kv/exam.kv
 #:include kv/navdrawer.kv
 #:include kv/notification.kv
-#:include kv/oklistitem.kv
+#:include kv/okwidgets.kv
 #:include kv/patient.kv
 #:include kv/toolbarscreen.kv
 
@@ -37,20 +37,21 @@ MDNavigationLayout:
             name: "user_detail_view"
             title: "Usuario"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            MDList:
+                id: pkg_list
         ToolbarScreen:
             name: "ekg_list_view"
             title: "Exámenes"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
             on_enter: app.root.ids.exam_list.populate()
-            ScrollView:
-                ExamList:
-                    id: exam_list
+            ExamList:
+                id: exam_list
             MDFloatingActionButton:
                 icon: "plus-circle-outline"
                 md_bg_color: app.theme_cls.accent_dark
                 pos_hint: {'center_x':0.9, 'center_y':0.1}
                 on_release: 
-                    screen_manager.current = 'ekg_create_view'
+                    screen_manager.current = 'select_patient_view'
                     screen_manager.transition.direction = 'left'
         ToolbarScreen:
             name: "ekg_detail_view"
@@ -74,31 +75,31 @@ MDNavigationLayout:
                 MDLabel:
                     text: "texto 4"
         ToolbarScreen:
+            name: "select_patient_view"
+            title: "Seleccione el paciente"
+            action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
+            on_enter: app.root.ids.patient_selector.populate()
+            PatientSelector:
+                id: patient_selector
+        ToolbarScreen:
             name: "ekg_create_view"
             title: "Nuevo EKG"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
+            on_enter: app.root.ids.new_exam_metadata.populate(self.object_id)
             MDBoxLayout:
                 orientation: 'horizontal'
-                size_hint_y: 0.4
-                MDBoxLayout:
-                    orientation: 'vertical'
-                    padding: 8
-                    spacing: 8
-                    MDLabel:
-                        text: "texto"
-                    MDLabel:
-                        text: "texto"
-                MDBoxLayout:
-                    orientation: 'vertical'
-                    padding: 8
-                    spacing: 8
-                    MDLabel:
-                        text: "texto"
-                    MDLabel:
-                        text: "texto"
+                size_hint_y: 0.58
+                spacing: dp(4)
+                padding: dp(4)
+                ExamMetadataForm:
+                    id: new_exam_metadata
+                OKDevicePanel:
+                    id: ok_device_panel
             MDBoxLayout:
                 orientation: 'vertical'
                 size_hint_y: 1
+                spacing: dp(4)
+                padding: dp(4)
                 ScrollView:
                     do_scroll_y: False
                     effect_cls: 'ScrollEffect'
@@ -107,31 +108,22 @@ MDNavigationLayout:
                         size_hint_x: None
                         size_hint_y: None
                         height: self.parent.height
-                        width: self.parent.width 
-                        MDBoxLayout:
-                            orientation: 'horizontal'
-                            size_hint_y: 0.2
-                            spacing: 8
-                            MDLabel:
-                                text: "texto"
-                            MDLabel:
-                                text: "texto"
+                        width: self.parent.width
+                MiniPlot:
+                    id: new_ekg_miniplot
+                    size_hint_y: 0.25
             MDBoxLayout:
                 orientation: 'horizontal'
-                size_hint_y: 0.2
-                size_hint_x: None
-                padding: self.width*0.1
-                spacing: self.width*0.15
-                MDRaisedButton:
-                    text: "EMPEZAR"
+                adaptive_height: True
+                padding: dp(8)
+                spacing: dp(8)
+                MDFlatButton:
+                    text: "CANCELAR"
                     pos_hint: {'center_y': 0.5}
-                    on_release: app.ble.toogle_reception()        
                 MDRaisedButton:
-                    text: "CONECTAR"
-                    pos_hint: {'center_y': 0.5}
-                    on_release: 
-                        new_ekg.clear_ekg()
-                        app.ble.connect()
+                    text: "GUARDAR"
+                    halign: 'right'
+                    pos_hint: {'center_y': 0.5}       
         ToolbarScreen:
             name: "patient_list_view"
             title: "Pacientes"

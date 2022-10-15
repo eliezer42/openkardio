@@ -1,41 +1,47 @@
-
 import utils.remotedb as rdb
 import utils.localdb as ldb
 import sqlalchemy
 import logging
 from datetime import date
-from oklistitem import OKListItem
+from okwidgets import OKListItem
 from kivy.properties import StringProperty, ObjectProperty, BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.list import MDList
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.pickers import MDDatePicker
-from kivymd.uix.card import MDCard
-from kivymd.uix.behaviors import RectangularElevationBehavior
 from kivymd.toast import toast
 
-class PatientList(MDList):
-    sex_icons = {'M': 'face-man', 'F': 'face-woman'}
+class PatientList(MDBoxLayout):
+    def populate(self, text="", search=False):
+        '''Builds a list of icons for the screen MDIcons.'''
 
-    def populate(self, *args):
-        self.clear_widgets()
+        def add_item(instance):
+            self.ids.rv.data.append(
+                {
+                    "viewclass": "OKListItem",
+                    "object_id": instance.id,
+                    "text": instance.first_name + " " + instance.last_name,
+                    "secondary_text": f"Expediente no.: {instance.record}",
+                    "tertiary_text": f"Edad: {instance.age()} años",
+                    "icon": "face-man" if instance.sex == "M" else "face-woman",
+                    "screen": "ekg_create_view",
+                    "propagate": True
+                }
+            )
+
+        self.ids.rv.data = []
         app_session = MDApp.get_running_app().session
         for instance in app_session.query(ldb.Patient).order_by(ldb.Patient.id):
-            self.add_widget(
-                OKListItem(
-                    object_id = instance.id,
-                    text=f"{instance.first_name} {instance.last_name}",
-                    secondary_text= f"Expediente no.: {instance.record}",
-                    tertiary_text= f"Sexo: {instance.sex}  Edad: {instance.age()} años",
-                    icon = self.sex_icons[instance.sex],
-                    screen = "patient_detail_view"
-                )
-            )
+            if search:
+                if text in instance.first_name or text in instance.last_name or text in instance.record:
+                    add_item(instance)
+            else:
+                add_item(instance)
 
 class PatientDetail(MDBoxLayout):
     patient = ObjectProperty(ldb.Patient())
-    sex_icon = StringProperty("face")
+    sex_icon = StringProperty("face-man")
 
     def populate(self, patient_id):
         app_session = MDApp.get_running_app().session
@@ -45,8 +51,8 @@ class PatientDetail(MDBoxLayout):
             toast('Hubo un error al buscar el paciente.')
 
     def on_patient(self, instance, value):
-        logging.warning(value.id)
-        self.sex_icon = "face-woman" if value.sex == 'F' else "face"
+        logging.warning(f"Patient ID: {value.id}")
+        self.sex_icon = "face-woman" if value.sex == 'F' else "face-man"
         self.ids.name.text = "Nombres: " + value.first_name + "\n" + "Apellidos: " + value.last_name
         self.ids.age.text = "Edad: " + str(value.age()) + " años"
         self.ids.identification.text = "Cédula: " + value.identification
@@ -54,8 +60,6 @@ class PatientDetail(MDBoxLayout):
         self.ids.address.text = "Domicilio: " + value.address
         self.ids.contact.text = "Contacto de emergencia: "  + value.emergency_contact
 
-class OKCard(MDCard, RectangularElevationBehavior):
-    pass
 
 class FormField(MDBoxLayout):
     label = StringProperty()

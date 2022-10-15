@@ -1,7 +1,32 @@
 #:kivy 2.1.0
 #:import * patient
-<PatientList>:
 
+<PatientList>:
+    orientation: 'vertical'
+    spacing: dp(8)
+    padding: dp(8)
+
+    MDBoxLayout:
+        adaptive_height: True
+        MDIconButton:
+            icon: 'magnify'
+        MDTextField:
+            id: search_field
+            hint_text: 'Buscar paciente'
+            on_text: root.set_patient_list(self.text, True)
+    RecycleView:
+        id: rv
+        key_viewclass: 'viewclass'
+        key_size: 'height'
+
+        RecycleBoxLayout:
+            padding: dp(8)
+            default_size: None, None
+            default_size_hint: 1, None
+            size_hint_y: None
+            height: self.minimum_height
+            orientation: 'vertical'
+            
 <PatientDetail>:
     orientation: 'vertical'
     adaptive_height: True
@@ -75,7 +100,7 @@
 
 <PatientForm>:
     orientation: 'vertical'
-    padding: ["60dp", "8dp", "80dp", "8dp"]
+    padding: ["16dp", "16dp", "16dp", "16dp"]
     spacing: "8dp"
     adaptive_height: True
     MDLabel:
@@ -87,10 +112,9 @@
         label: "Nombres:"
         MDTextField:
             text: self.parent.text
-            hint_text: "Nombres del paciente"
+            hint_text: "Nombres del paciente*"
             multiline: False
             error: self.parent.error
-            required: True
             helper_text_mode: "on_error"
             helper_text: "Requerido"
             on_text: self.parent.value = self.text
@@ -99,10 +123,9 @@
         label: "Apellidos:"
         MDTextField:
             text: self.parent.text
-            hint_text: "Apellidos del paciente"
+            hint_text: "Apellidos del paciente*"
             multiline: False
             error: self.parent.error
-            required: True
             helper_text_mode: "on_error"
             helper_text: "Requerido"
             on_text: self.parent.value = self.text
@@ -131,7 +154,6 @@
             text: self.parent.text
             hint_text: "Seleccione el sexo presionando aquí"
             multiline: False
-            required: True
             error: self.parent.error
             helper_text_mode: "on_error"
             helper_text: "Requerido"
@@ -145,7 +167,6 @@
             text: self.parent.text
             hint_text: "Seleccione la fecha (dd/mm/aaaa)*"
             multiline: False
-            required: True
             helper_text_mode: "on_error"
             helper_text: "Requerido"
             icon_right: "calendar"
@@ -157,7 +178,6 @@
             text: self.parent.text
             hint_text: "Ingrese número de expediente*"
             multiline: False
-            required: True
             helper_text_mode: "on_error"
             helper_text: "Requerido"
             on_text: self.parent.value = self.text

@@ -1,13 +1,18 @@
 import logging
+import sqlalchemy
+import utils.localdb as ldb
 import numpy as np
 import utils.utils as utils
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
-from kivy.graphics import Color, Line, Rectangle
+from kivy.graphics import Color, Line, Rectangle, RoundedRectangle
 from kivy.metrics import dp
-from kivy.properties import StringProperty, ListProperty, ObjectProperty, BooleanProperty, NumericProperty
+from kivy.properties import DictProperty, StringProperty, ListProperty, ObjectProperty, BooleanProperty, NumericProperty
+from kivymd.app import MDApp
 from kivymd.uix.list import MDList
-from oklistitem import OKListItem
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.toast import toast
+from okwidgets import OKListItem, OKCard
 
 class Plot(Widget):
     sample_rate = NumericProperty(120)
@@ -106,18 +111,112 @@ class Plot(Widget):
         self.canvas.after.clear()
         self.time_generator = utils.time_gen(self.sample_rate)
 
-class ExamList(MDList):
-    sex_icons = {'M': 'face-man', 'F': 'face-woman'}
+class MiniPlot(Widget):
+    line = ObjectProperty()
+    samples = ListProperty([])
 
-    def populate(self, *args):
-        self.clear_widgets()
-        for i in range(10):
-            self.add_widget(
-                OKListItem(
-                    object_id = 0,
-                    text=f"EKG-210621-1405 {i} ",
-                    secondary_text= "Fulano de Tal",
-                    tertiary_text= "Sex: M  Age: 32  ",
-                    icon = self.sex_icons['M'],
-                    screen = "ekg_detail_view")
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        
+    def on_size(self, *args):
+        with self.canvas.before:
+            Color(rgba=[0.96,0.9,0.87, 0.83])
+            RoundedRectangle(pos=self.pos, size=self.size, radius = [(20, 20), (20, 20), (20, 20), (20, 20)])
+            Color(rgba=[0,0,0,1])
+            Line(points=[self.x, self.height/2, self.right, self.height/2], width=1)
+
+    def clear_line(self):
+        self.canvas.after.clear()
+    
+    def update(self, sample_list):
+        line = Line()
+
+class ExamList(MDBoxLayout):
+    def populate(self, text="", search=False):
+        '''Builds a list of icons for the screen MDIcons.'''
+
+        def add_item(instance):
+            self.ids.rv.data.append(
+                {
+                    "viewclass": "OKListItem",
+                    "object_id": instance.id,
+                    "text": f'EKG-{instance.created.strftime("%Y%m%d")}-{instance.id}',
+                    "secondary_text": instance.patient.first_name + " " + instance.patient.last_name,
+                    "tertiary_text": f"Expediente no.: {instance.patient.record}",
+                    "icon": MDApp.get_running_app().icons.get(instance.patient.sex),
+                    "screen": "ekg_create_view",
+                    "propagate": True
+                }
             )
+
+        self.ids.rv.data = []
+        app_session = MDApp.get_running_app().session
+        for instance in app_session.query(ldb.Exam).order_by(ldb.Exam.id):
+            if search:
+                if text in instance.patient.first_name or\
+                    text in instance.patient.last_name or\
+                    text in instance.patient.record:
+                    add_item(instance)
+            else:
+                add_item(instance)
+
+class PatientSelector(MDBoxLayout):
+    def populate(self, text="", search=False):
+        '''Builds a list of icons for the screen MDIcons.'''
+
+        def add_patient_item(instance):
+            self.ids.rv.data.append(
+                {
+                    "viewclass": "OKSelectorItem",
+                    "object_id": instance.id,
+                    "text": instance.first_name + " " + instance.last_name,
+                    "secondary_text": f"Expediente no.: {instance.record}",
+                    "icon": MDApp.get_running_app().icons.get(instance.sex),
+                    "screen": "ekg_create_view"
+                }
+            )
+
+        self.ids.rv.data = []
+        app_session = MDApp.get_running_app().session
+        for instance in app_session.query(ldb.Patient).order_by(ldb.Patient.id):
+            if search:
+                if text in instance.first_name or text in instance.last_name or text in instance.record:
+                    add_patient_item(instance)
+            else:
+                add_patient_item(instance)
+
+class ExamMetadataForm(OKCard):
+    data = DictProperty({})
+    def populate(self, patient_id):
+        app_session = MDApp.get_running_app().session
+        try:
+            self.patient = app_session.query(ldb.Patient).filter(ldb.Patient.id == patient_id).one()
+            self.ids.info.text = f"{self.patient.first_name} {self.patient.last_name}"
+            self.ids.info.icon = MDApp.get_running_app().icons.get(self.patient.sex[0])
+        except sqlalchemy.orm.exc.NoResultFound:
+            toast('Hubo un error al buscar el examen.')
+
+
+class ExamMetadataDetail(OKCard):
+    exam = ObjectProperty(ldb.Exam())
+
+    def populate(self, exam_id):
+        app_session = MDApp.get_running_app().session
+        try:
+            self.patient = app_session.query(ldb.Exam).filter(ldb.Patient.id == exam_id).one()
+        except sqlalchemy.orm.exc.NoResultFound:
+            toast('Hubo un error al buscar el examen.')
+    
+    def on_exam(self, instance, value):
+        logging.warning(f"Exam ID: {value.id}")
+        self.ids.info.icon = MDApp.get_running_app().icons.get(value.patient.sex)
+        self.ids.info.text = "Nombres: " + value.patient.first_name + "\n" + "Apellidos: " + value.patient.last_name
+        self.ids.age.text = "Edad: " + str(value.patient.age()) + " años"
+        self.ids.spo2.text = f"{value.spo2} %"
+        self.ids.weight.text = f"{value.weight_pd} lbs"
+        self.ids.press.text = f"{value.sys_pres}/{value.dia_pres}"
+        
+class OKDevicePanel(OKCard):
+    sample_rate = StringProperty("T. de muestreo: ")
+    leads = StringProperty("Derivaciones: ")
+    battery = StringProperty("Batería: ")

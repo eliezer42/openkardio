@@ -2,3 +2,174 @@
 #:import * exam
 
 <ExamList>:
+    orientation: 'vertical'
+    spacing: dp(8)
+    padding: dp(8)
+
+    MDBoxLayout:
+        adaptive_height: True
+        MDIconButton:
+            icon: 'magnify'
+        MDTextField:
+            id: search_field
+            hint_text: 'Buscar paciente'
+            on_text: root.set_patient_list(self.text, True)
+
+    RecycleView:
+        id: rv
+        key_viewclass: 'viewclass'
+        key_size: 'height'
+
+        RecycleBoxLayout:
+            padding: dp(8)
+            default_size: None, None
+            default_size_hint: 1, None
+            size_hint_y: None
+            height: self.minimum_height
+            orientation: 'vertical'
+
+<PatientSelector>:
+    orientation: 'vertical'
+    spacing: dp(8)
+    padding: dp(8)
+
+    MDBoxLayout:
+        adaptive_height: True
+        MDIconButton:
+            icon: 'magnify'
+        MDTextField:
+            id: search_field
+            hint_text: 'Buscar paciente'
+            on_text: root.set_patient_list(self.text, True)
+
+    RecycleView:
+        id: rv
+        key_viewclass: 'viewclass'
+        key_size: 'height'
+
+        RecycleBoxLayout:
+            padding: dp(8)
+            default_size: None, None
+            default_size_hint: 1, None
+            size_hint_y: None
+            height: self.minimum_height
+            orientation: 'vertical'
+
+<ExamMetadataDetail>:
+    MDLabel:
+        text: root.title
+        size_hint_x: 1
+        halign: 'center'
+        font_style: "Subtitle2"
+    OKIconItem:
+        id: info
+    MDBoxLayout:
+        orientation: 'horizontal'
+        adaptive_height: True
+        spacing: dp(4)
+        padding: dp(4)
+        OKIconItem:
+            id: spo2
+            icon_left: 'water-percent'
+        OKIconItem:
+            id: weight
+            icon_left: 'weight-pound'
+    MDBoxLayout:
+        orientation: 'horizontal'
+        adaptive_height: True
+        spacing: dp(4)
+        padding: dp(4)
+        OKIconItem:
+            id: press
+            icon_left: 'gauge'
+        OKIconItem:
+            id: age
+            icon_left: 'gauge'
+
+
+<ExamMetadataForm>:
+    spacing: dp(4)
+    padding: dp(4)
+    style: "filled"
+    md_bg_color: "#f4dedc"
+    MDBoxLayout:
+        orientation: 'vertical'
+        adaptive_height: True
+        padding: dp(8)
+        spacing: dp(8)
+        MDLabel:
+            text: root.title
+            size_hint_x: 1
+            halign: 'center'
+            font_style: "Subtitle2"
+        OKIconItem:
+            id: info
+        MDBoxLayout:
+            orientation: 'horizontal'
+            adaptive_height: True
+            spacing: dp(4)
+            padding: dp(4)
+            MDTextField:
+                id: spo2
+                icon_left: 'water-percent'
+                helper_text: "Saturación O2"
+                on_text: root.data['spo2'] = self.text
+            MDTextField:
+                id: weight
+                icon_left: 'weight-pound'
+                helper_text: "Peso"
+                on_text: root.data['weight_pd'] = self.text
+        MDBoxLayout:
+            orientation: 'horizontal'
+            adaptive_height: True
+            spacing: dp(4)
+            padding: dp(4)
+            MDTextField:
+                id: press
+                icon_left: 'gauge'
+                helper_text: "P. Sistólica"
+                on_text: root.data['sys_pres'] = self.text
+            MDTextField:
+                id: press
+                icon_left: 'gauge'
+                helper_text: "P. Diastólica"
+                on_text: root.data['dia_pres'] = self.text
+
+<OKDevicePanel>:
+    spacing: dp(4)
+    padding: dp(4)
+    style: "filled"
+    md_bg_color: "#f4dedc"
+    title: "OKDevice"
+    MDBoxLayout:
+        orientation: 'vertical'
+        adaptive_height: True
+        padding: dp(8)
+        spacing: dp(8)
+        MDLabel:
+            text: root.title
+            size_hint_x: 1
+            halign: 'center'
+            font_style: "Subtitle2"
+        OKIconItem:
+            id: sample_rate
+            icon: 'chart-timeline-variant'
+            text: '240 muestras/s'
+        OKIconItem:
+            id: leads
+            icon: 'heart-flash'
+            text: '0 derivaciones'
+        OKIconItem:
+            id: battery
+            icon: 'battery-bluetooth-variant'
+            text: '100 %'
+        MDRaisedButton:
+            text: "EMPEZAR"
+            size_hint_x: 1
+            on_release: app.ble.toogle_reception()        
+        MDRaisedButton:
+            text: "CONECTAR"
+            size_hint_x: 1
+            on_release: 
+                app.root.ids.new_ekg.clear_ekg()
+                app.ble.connect()

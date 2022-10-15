@@ -5,7 +5,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy_utils import create_database, database_exists
 from datetime import date
 
-SQLITE                  = 'sqlite:///test.db'
+SQLITE = 'sqlite:///test.db'
 if not database_exists(SQLITE):
     create_database(SQLITE)
 
@@ -80,6 +80,7 @@ class Exam(Base):
     weight_pd = Column(Integer)
     ekg_id = Column(Integer, ForeignKey('ekgs.id'))
     notes = Column(String, default="")
+    created = Column(Date)
     origin_id = Column(Integer, ForeignKey('healthcenters.id'))
     disabled = Column(Boolean, default=False)
     patient = relationship("Patient", back_populates='exams')
@@ -101,13 +102,3 @@ class Case(Base):
     destination = relationship('HealthCenter', back_populates='cases')
 
 Base.metadata.create_all(engine)
-
-if __name__ == '__main__':
-    session = Session()
-    patient1 = Patient(first_name="Eliezer", last_name="Mendez", sex="M", birth_date=date(1998, 3, 28), record="123-456-789")
-    patient2 = Patient(first_name="Guillermo", last_name="Mendez", sex="M", birth_date=date(1960, 6, 25), record="123-456-789")
-    patient3 = Patient(first_name="Evelyn", last_name="Delgado", sex="F", birth_date=date(1970, 12, 13), record="123-456-789")
-    session.add_all([patient1, patient2, patient3])
-    exam1 = Exam()
-    session.commit()
-    session.close()
