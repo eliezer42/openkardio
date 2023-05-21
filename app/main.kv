@@ -9,9 +9,11 @@
 MDNavigationLayout:
     ScreenManager:
         id: screen_manager
+
+
         ToolbarScreen:
             name: "homescreen"
-            title: "ABC"
+            title: "OpenKardio"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
             MDLabel:
                 id: out
@@ -21,7 +23,6 @@ MDNavigationLayout:
                 halign: "center"
             MDRaisedButton:
                 text: "Create Random Object"
-                on_release: app.create_obj()
             MDRaisedButton:
                 text: "Connect to OKDevice"
                 on_release: 
@@ -33,12 +34,7 @@ MDNavigationLayout:
                     app.running = False
                     print('False')
 
-        ToolbarScreen:
-            name: "user_detail_view"
-            title: "Usuario"
-            action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            MDList:
-                id: pkg_list
+
         ToolbarScreen:
             name: "ekg_list_view"
             title: "Exámenes"
@@ -49,31 +45,62 @@ MDNavigationLayout:
             MDFloatingActionButton:
                 icon: "plus-circle-outline"
                 md_bg_color: app.theme_cls.accent_dark
-                pos_hint: {'center_x':0.9, 'center_y':0.1}
-                on_release: 
+                pos_hint: {'center_x':0.9, 'center_y':0.15}
+                on_release:
                     screen_manager.current = 'select_patient_view'
                     screen_manager.transition.direction = 'left'
+
+
         ToolbarScreen:
             name: "ekg_detail_view"
+            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)]]
             title: "View ekg"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
-            MDGridLayout:
-                id: ekg_info
-                md_bg_color: app.theme_cls.primary_light
+            on_enter:
+                app.root.ids.ekg_plot.populate(
+                app.root.ids.exam_metadata_detail.populate(self.object_id)
+                )
+            ExamMetadataDetail:
+                id: exam_metadata_detail
+            ScrollView:
+                do_scroll_y: False
+                effect_cls: 'ScrollEffect'
+                Plot:
+                    id: ekg_plot
+                    size_hint_x: None
+                    size_hint_y: None
+                    height: self.parent.height
+                    width: self.parent.width
+            MDBoxLayout:
+                orientation:'horizontal'
                 adaptive_height: True
-                cols: 2
-                padding: [8, 8]
-                spacing: [8, 8]
-                row_force_default: True
-                row_default_height: 32
+                padding: "8dp"
+                spacing: "8dp"
                 MDLabel:
-                    text: "texto 1"
+                    text: "Comentarios:"
+                    font_style: "Subtitle2"
+                    halign: "right"
+                    size_hint_x: 0.3
+                    theme_text_color: "Custom"
+                    text_color: 0, 0, 0.9, 1
                 MDLabel:
-                    text: "texto 2"
+                    id: origin_note
+                    md_bg_color: 1,1,1,1
+            MDBoxLayout:
+                orientation:'horizontal'
+                adaptive_height: True
                 MDLabel:
-                    text: "texto 3"
+                    text: "Diagnóstico:"
+                    font_style: "Subtitle2"
+                    halign: "right"
+                    size_hint_x: 0.3
+                    theme_text_color: "Custom"
+                    text_color: 0, 0.9, 0, 1
                 MDLabel:
-                    text: "texto 4"
+                    id: diagnostic_note
+                    md_bg_color: 1,1,1,1
+
+
         ToolbarScreen:
             name: "select_patient_view"
             title: "Seleccione el paciente"
@@ -81,49 +108,45 @@ MDNavigationLayout:
             on_enter: app.root.ids.patient_selector.populate()
             PatientSelector:
                 id: patient_selector
+
+
         ToolbarScreen:
             name: "ekg_create_view"
             title: "Nuevo EKG"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
-            on_enter: app.root.ids.new_exam_metadata.populate(self.object_id)
-            MDBoxLayout:
-                orientation: 'horizontal'
-                size_hint_y: 0.58
-                spacing: dp(4)
-                padding: dp(4)
-                ExamMetadataForm:
-                    id: new_exam_metadata
-                OKDevicePanel:
-                    id: ok_device_panel
-            MDBoxLayout:
-                orientation: 'vertical'
-                size_hint_y: 1
-                spacing: dp(4)
-                padding: dp(4)
-                ScrollView:
-                    do_scroll_y: False
-                    effect_cls: 'ScrollEffect'
-                    Plot:
-                        id: new_ekg
-                        size_hint_x: None
-                        size_hint_y: None
-                        height: self.parent.height
-                        width: self.parent.width
-                MiniPlot:
-                    id: new_ekg_miniplot
-                    size_hint_y: 0.25
+            on_enter:
+                app.root.ids.new_exam_metadata.populate(self.object_id)
+                app.root.ids.new_ekg.clear_ekg()
+            ExamMetadataForm:
+                id: new_exam_metadata
+            OKDevicePanel:
+                id: ok_device_panel 
+            ScrollView:
+                do_scroll_y: False
+                effect_cls: 'ScrollEffect'
+                Plot:
+                    id: new_ekg
+                    size_hint_x: None
+                    size_hint_y: None
+                    height: self.parent.height
+                    width: self.parent.width
             MDBoxLayout:
                 orientation: 'horizontal'
                 adaptive_height: True
+                size_hint_x: 1
                 padding: dp(8)
                 spacing: dp(8)
+                Widget:
                 MDFlatButton:
                     text: "CANCELAR"
                     pos_hint: {'center_y': 0.5}
                 MDRaisedButton:
                     text: "GUARDAR"
                     halign: 'right'
-                    pos_hint: {'center_y': 0.5}       
+                    pos_hint: {'center_y': 0.5}
+                    on_release:
+                        app.show_comment_dialog()
+
         ToolbarScreen:
             name: "patient_list_view"
             title: "Pacientes"
@@ -135,10 +158,12 @@ MDNavigationLayout:
             MDFloatingActionButton:
                 icon: "plus-circle-outline"
                 md_bg_color: app.theme_cls.accent_dark
-                pos_hint: {'center_x':0.9, 'center_y':0.1}
+                pos_hint: {'center_x':0.9, 'center_y':0.15}
                 on_release: 
                     screen_manager.current = 'patient_create_view'
                     screen_manager.transition.direction = 'left'
+
+
         ToolbarScreen:
             name: "patient_detail_view"
             title: "View Patient"
@@ -146,6 +171,8 @@ MDNavigationLayout:
             on_enter: app.root.ids.patient_detail.populate(self.object_id)
             PatientDetail:
                 id: patient_detail
+
+
         ToolbarScreen:
             name: "patient_create_view"
             title: "Nuevo paciente"
@@ -154,16 +181,22 @@ MDNavigationLayout:
                 PatientForm:
                     id: patient_form
                     header: "Ingrese información solicitada"
+
+
         ToolbarScreen:
             name: "config"
             title: "Configuración"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+
+
         ToolbarScreen:
             name: "help"
             title: "Ayuda"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
             NotificationDemo:
                 id: demo
+
+
     MDNavigationDrawer:
         id: nav_drawer
         ContentNavigationDrawer:

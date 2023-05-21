@@ -1,8 +1,8 @@
-from kivy.properties import BooleanProperty, StringProperty, NumericProperty
+from kivy.properties import BooleanProperty, StringProperty, NumericProperty, ObjectProperty
 from kivymd.uix.list import ThreeLineIconListItem, TwoLineIconListItem
-from kivymd.uix.card import MDCard
+from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.behaviors import RectangularElevationBehavior
+from kivymd.uix.textfield import MDTextField
 
 class OKIconItem(MDBoxLayout):
     icon = StringProperty("alert")
@@ -20,11 +20,8 @@ class OKSelectorItem(TwoLineIconListItem):
     object_id = NumericProperty()
     propagate = BooleanProperty(False)
 
-class OKCard(MDCard, RectangularElevationBehavior):
-    title = StringProperty("Title")
+class OKHospitalSelectorItem(TwoLineIconListItem):
+    pass
 
-    def add_widget(self, *args, **kwargs):
-        if 'container' in self.ids:
-            return self.ids.container.add_widget(*args, **kwargs)
-        else:
-            return super().add_widget(*args, **kwargs)
+class OKCommentWidget(MDBoxLayout):
+    hint = StringProperty("")

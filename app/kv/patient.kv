@@ -13,7 +13,7 @@
         MDTextField:
             id: search_field
             hint_text: 'Buscar paciente'
-            on_text: root.set_patient_list(self.text, True)
+            on_text: root.populate(self.text, True)
     RecycleView:
         id: rv
         key_viewclass: 'viewclass'
@@ -32,9 +32,9 @@
     adaptive_height: True
     padding: "8dp"
     spacing: "8dp"
-    OKCard:
+    MDBoxLayout:
         orientation: "vertical"
-        elevation: 8
+        elevation: 4
         padding: "8dp"
         spacing: "8dp"
         size_hint: 0.9, 0.45
@@ -90,18 +90,19 @@
 <FormField>:
     orientation: 'horizontal'
     adaptive_height: True
-    padding: "8dp"
+    padding: "4dp"
     spacing: "8dp"
     MDLabel:
         text: root.label
-        size_hint_x: 0.4
+        size_hint_x: 0.30
         halign: "right"
         valign: "bottom"
+        font_style: "Body2"
 
 <PatientForm>:
     orientation: 'vertical'
-    padding: ["16dp", "16dp", "16dp", "16dp"]
-    spacing: "8dp"
+    padding: "8dp"
+    spacing: "6dp"
     adaptive_height: True
     MDLabel:
         text: root.header
@@ -180,14 +181,6 @@
             multiline: False
             helper_text_mode: "on_error"
             helper_text: "Requerido"
-            on_text: self.parent.value = self.text
-    FormField:
-        id: med_conditions
-        label: "Condiciones médicas:"
-        MDTextField:
-            text: self.parent.text
-            hint_text: "Ingrese padecimientos del paciente"
-            multiline: True
             on_text: self.parent.value = self.text
     FormField:
         id: emergency_contact

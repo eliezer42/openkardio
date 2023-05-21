@@ -13,7 +13,7 @@
         MDTextField:
             id: search_field
             hint_text: 'Buscar paciente'
-            on_text: root.set_patient_list(self.text, True)
+            on_text: root.populate(self.text, True)
 
     RecycleView:
         id: rv
@@ -56,13 +56,29 @@
             orientation: 'vertical'
 
 <ExamMetadataDetail>:
+    orientation: 'vertical'
+    adaptive_height: True
+    padding: dp(8)
+    spacing: dp(8)
+    md_bg_color: "#f4dedc"
     MDLabel:
         text: root.title
         size_hint_x: 1
         halign: 'center'
         font_style: "Subtitle2"
-    OKIconItem:
-        id: info
+    MDBoxLayout:
+        orientation: 'horizontal'
+        adaptive_height: True
+        padding: dp(8)
+        spacing: dp(4)
+        OKIconItem:
+            id: info
+            size_hint_x: 0.5
+        MDLabel:
+            id: status
+            font_style: "Button"
+            size_hint_x: 0.14
+            theme_text_color: "Custom"
     MDBoxLayout:
         orientation: 'horizontal'
         adaptive_height: True
@@ -70,106 +86,103 @@
         padding: dp(4)
         OKIconItem:
             id: spo2
-            icon_left: 'water-percent'
+            icon: 'water-percent'
         OKIconItem:
-            id: weight
-            icon_left: 'weight-pound'
+            id: weight_pd
+            icon: 'weight-pound'
+        OKIconItem:
+            id: pressure
+            icon: 'gauge'
     MDBoxLayout:
         orientation: 'horizontal'
         adaptive_height: True
         spacing: dp(4)
         padding: dp(4)
         OKIconItem:
-            id: press
-            icon_left: 'gauge'
-        OKIconItem:
-            id: age
-            icon_left: 'gauge'
-
-
-<ExamMetadataForm>:
-    spacing: dp(4)
-    padding: dp(4)
-    style: "filled"
-    md_bg_color: "#f4dedc"
-    MDBoxLayout:
-        orientation: 'vertical'
-        adaptive_height: True
-        padding: dp(8)
-        spacing: dp(8)
-        MDLabel:
-            text: root.title
-            size_hint_x: 1
-            halign: 'center'
-            font_style: "Subtitle2"
-        OKIconItem:
-            id: info
-        MDBoxLayout:
-            orientation: 'horizontal'
-            adaptive_height: True
-            spacing: dp(4)
-            padding: dp(4)
-            MDTextField:
-                id: spo2
-                icon_left: 'water-percent'
-                helper_text: "Saturación O2"
-                on_text: root.data['spo2'] = self.text
-            MDTextField:
-                id: weight
-                icon_left: 'weight-pound'
-                helper_text: "Peso"
-                on_text: root.data['weight_pd'] = self.text
-        MDBoxLayout:
-            orientation: 'horizontal'
-            adaptive_height: True
-            spacing: dp(4)
-            padding: dp(4)
-            MDTextField:
-                id: press
-                icon_left: 'gauge'
-                helper_text: "P. Sistólica"
-                on_text: root.data['sys_pres'] = self.text
-            MDTextField:
-                id: press
-                icon_left: 'gauge'
-                helper_text: "P. Diastólica"
-                on_text: root.data['dia_pres'] = self.text
-
-<OKDevicePanel>:
-    spacing: dp(4)
-    padding: dp(4)
-    style: "filled"
-    md_bg_color: "#f4dedc"
-    title: "OKDevice"
-    MDBoxLayout:
-        orientation: 'vertical'
-        adaptive_height: True
-        padding: dp(8)
-        spacing: dp(8)
-        MDLabel:
-            text: root.title
-            size_hint_x: 1
-            halign: 'center'
-            font_style: "Subtitle2"
+            id: bpm
+            icon: 'heart'
         OKIconItem:
             id: sample_rate
             icon: 'chart-timeline-variant'
-            text: '240 muestras/s'
+        OKIconItem:
+            id: gain
+            icon: 'ruler'
+
+
+<ExamMetadataForm>:
+    orientation: 'vertical'
+    padding: dp(8)
+    spacing: dp(8)
+    md_bg_color: "#f4dedc"
+    adaptive_height: True
+    MDLabel:
+        text: root.title
+        halign: 'center'
+        font_style: "Subtitle2"
+    OKIconItem:
+        id: info
+    MDBoxLayout:
+        orientation: 'horizontal'
+        adaptive_height: True
+        spacing: dp(8)
+        MDTextField:
+            id: spo2
+            icon_left: 'water-percent'
+            hint_text: "SpO2"
+            helper_text: "Ej.: 95"
+        MDTextField:
+            id: weight_pd
+            icon_left: 'weight-pound'
+            hint_text: "Peso (lb)"
+            helper_text: "Ej.: 190"
+        MDTextField:
+            id: pressure
+            icon_left: 'gauge'
+            hint_text: "Presión"
+            helper_text: "Ej.: 120/80"
+
+<OKDevicePanel>:
+    orientation: 'vertical'
+    padding: dp(8)
+    spacing: dp(8)
+    md_bg_color: "#f4dedc"
+    adaptive_height: True
+    title: "OpenKardio Device"
+    MDLabel:
+        text: root.title
+        halign: 'center'
+        font_style: "Subtitle2"
+    MDBoxLayout:
+        orientation: 'horizontal'
+        padding: dp(4)
+        spacing: dp(4)
+        md_bg_color: "#f4dedc"
+        adaptive_height: True
+        MDLabel:
+            text: "Status: " + root.status
+            halign: 'left'
+        MDRaisedButton:
+            text: root.button_text
+            halign: 'right'
+            pos_hint: {'center_y': 0.5}
+            md_bg_color: root.button_color
+            on_release:
+                root.set_status()
+                root.set_button_status()
+    MDBoxLayout:
+        orientation: 'horizontal'
+        spacing: dp(4)
+        md_bg_color: "#f4dedc"
+        adaptive_height: True
+        OKIconItem:
+            id: sample_rate
+            icon: 'chart-timeline-variant'
+            text: '240 sps'
         OKIconItem:
             id: leads
             icon: 'heart-flash'
-            text: '0 derivaciones'
+            text: '1 leads'
         OKIconItem:
             id: battery
             icon: 'battery-bluetooth-variant'
-            text: '100 %'
-        MDRaisedButton:
-            text: "EMPEZAR"
-            size_hint_x: 1
-            on_release: app.ble.toogle_reception()        
-        MDRaisedButton:
-            text: "CONECTAR"
-            size_hint_x: 1
-            on_release: 
-                app.root.ids.new_ekg.clear_ekg()
-                app.ble.connect()
+            text: '100%'

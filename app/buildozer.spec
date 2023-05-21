@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,plyer,kivy==2.1.0,kivymd==1.0.2,pillow,numpy,faker,dateutil,sqlalchemy==1.4.40,sqlalchemy_utils==0.38.3,bleak,async_to_sync,async_timeout,typing_extensions
+requirements = python3,plyer,kivy==2.1.0,kivymd==1.1.1,pillow,numpy,dateutil,sqlalchemy==1.4.40,sqlalchemy_utils==0.38.3,bleak,async_to_sync,async_timeout,typing_extensions
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -99,7 +99,7 @@ android.permissions = INTERNET,BLUETOOTH,BLUETOOTH_ADMIN,ACCESS_FINE_LOCATION,AC
 #android.features = android.hardware.usb.host
 
 # (int) Target Android API, should be as high as possible.
-android.api = 29
+android.api = 30
 
 # (int) Minimum API your APK / AAB will support.
 android.minapi = 26

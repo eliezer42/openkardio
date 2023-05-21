@@ -4,7 +4,8 @@
 <OKIconItem>:
     orientation: 'horizontal'
     adaptive_height: True
-    spacing: dp(4)
+    padding: dp(8)
+    spacing: dp(16)
     MDIcon:
         icon: self.parent.icon
     MDLabel:
@@ -28,11 +29,19 @@
     IconLeftWidget:
         icon: root.icon
 
-<OKCard>:
-    MDGridLayout:
-        id: container
-        cols: 1
-        padding: "4dp"
-        spacing: "4dp"
-    
+<OKHospitalSelectorItem>:
+    md_bg_color: "#d4e1e0"
+    IconLeftWidget:
+        icon: "hospital-marker"
 
+<OKCommentWidget>:
+    orientation: "vertical"
+    spacing: "12dp"
+    adaptive_height: True
+    MDTextField:
+        id: text_field
+        hint_text: root.hint
+        multiline: True
+        max_text_length: 280
+    Widget:
+        height: "40dp"

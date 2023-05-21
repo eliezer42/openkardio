@@ -4,6 +4,7 @@ from kivymd.uix.screen import MDScreen
 class ToolbarScreen(MDScreen):
     title = StringProperty()
     action_items = ListProperty([])
+    right_items = ListProperty([])
     object_id = NumericProperty(0)
 
     def add_widget(self, *args, **kwargs):
