@@ -1,5 +1,5 @@
 import logging
-import sqlalchemy
+from sqlalchemy.exc import SQLAlchemyError
 import utils.localdb as ldb
 import numpy as np
 import utils.utils as utils
@@ -16,13 +16,11 @@ from okwidgets import OKListItem
 import pickle
 
 class Plot(Widget):
-    sample_rate = NumericProperty(120)
+    sample_rate = NumericProperty(240)
     top_of_scale = NumericProperty(26400)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
-    last_point = ListProperty([])
     next_samples = ListProperty([])
-    line = ObjectProperty(Line())
     bpm = NumericProperty(80)
     sample_gen = utils.Signal(2.5, sample_rate, 100, 150, 'square')
     MARGINS = 16
@@ -38,7 +36,7 @@ class Plot(Widget):
         self.time_generator = utils.time_gen(self.sample_rate)
         with self.canvas.after:
             Color(0, 0, 0, 1)
-            self.line = Line(points=[10,10,20,20], width = 1)
+            self.line = Line(points=[], width = 1)
 
     def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)
@@ -65,15 +63,16 @@ class Plot(Widget):
             pass
 
     def on_ekg_samples(self,*args):
-        self.width = max((len(self.ekg_samples)*self.subdiv_size/(self.sample_rate*self.SEC_PER_SUBDIV))+4*self.MARGINS, self.width)
-        logging.info(f"Samples received: {len(self.ekg_samples)}")
+        self.width = max((len(self.ekg_samples)*self.subdiv_size/(self.sample_rate*self.SEC_PER_SUBDIV))+4*self.MARGINS, self.parent.width)
 
     def on_next_samples(self, *args):
         if len(self.next_samples):
+            logging.info(f"New samples: {len(self.next_samples)}")
             next_points = [point for sample in self.next_samples for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
                                                 np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
             self.line.points += next_points
             self.ekg_samples.extend(self.next_samples)
+            self.next_samples = []
 
     def on_run_samples(self, *args):
         print("RUN SAMPLES MODIFIED")
@@ -85,7 +84,7 @@ class Plot(Widget):
                 self.update_plot_event.cancel()
                 self.sample_gen.stop()
             except Exception as e:
-                print("Something went wrong with the signal generato. ", e)
+                logging.error(e)
  
     def plot_grid(self, *args):
         with self.canvas.before:
@@ -108,23 +107,22 @@ class Plot(Widget):
             except AttributeError:
                 pass
 
-    def clear_ekg(self):
-        self.last_point = []
+    def reset(self):
         self.ekg_samples = []
-        self.canvas.after.clear()
+        self.next_samples = []
+        self.line.points = []
         self.time_generator = utils.time_gen(self.sample_rate)
 
     def populate(self, ekg_id):
-        self.time_generator = utils.time_gen(self.sample_rate)
-        self.ekg_samples = []
-        self.line.points = []
-        app_session = MDApp.get_running_app().session
+        self.reset()
         try:
+            logging.warning(f"EKG ID: {ekg_id}")
+            app_session = MDApp.get_running_app().session
             ekg = app_session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
+            logging.debug(f"EKG LENGTH: {len(pickle.loads(ekg.signal))}")
             self.next_samples = pickle.loads(ekg.signal)
-        except sqlalchemy.orm.exc.NoResultFound as e:
+        except Exception as e:
             logging.error(e)
-            toast('Hubo un error al buscar el EKG.')
 
     def get_ekg(self):
         if len(self.ekg_samples):
@@ -157,28 +155,8 @@ class Plot(Widget):
         961,957,955,959,958,959,958,955,957,957,958,957,957,954,956,957,
         958,957,959,958,960,960,961,960,961,962,963,964,965,963,962,965,
         965,964,966,967,967,965,966,967,968,968,967,965,967,967,966,968,
-        967,966,965,964]*2])
+        967,966,965,964]*4])
             }
-
-class MiniPlot(Widget):
-    line = ObjectProperty()
-    samples = ListProperty([])
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        
-    def on_size(self, *args):
-        with self.canvas.before:
-            Color(rgba=[0.96,0.9,0.87, 0.83])
-            RoundedRectangle(pos=self.pos, size=self.size, radius = [(20, 20), (20, 20), (20, 20), (20, 20)])
-            Color(rgba=[0,0,0,1])
-            Line(points=[self.x, self.height/2, self.right, self.height/2], width=1)
-
-    def clear_line(self):
-        self.canvas.after.clear()
-    
-    def update(self, sample_list):
-        line = Line()
 
 class ExamList(MDBoxLayout):
     def populate(self, text="", search=False):
@@ -192,7 +170,7 @@ class ExamList(MDBoxLayout):
                     "text": instance.name,
                     "secondary_text": instance.patient.first_name + " " + instance.patient.last_name,
                     "tertiary_text": f"Expediente no.: {instance.patient.record}",
-                    "icon": MDApp.get_running_app().icons.get(instance.patient.sex),
+                    "icon": "clipboard-pulse",
                     "screen": "ekg_detail_view",
                     "propagate": True
                 }
@@ -250,61 +228,64 @@ class ExamMetadataForm(MDBoxLayout):
             self.ids.spo2.text = ""
             self.ids.weight_pd.text = ""
             self.ids.pressure.text = ""
-        except sqlalchemy.orm.exc.NoResultFound as e:
+        except SQLAlchemyError as e:
             logging.error(e)
             toast('Hubo un error al buscar el paciente.')
 
     def save(self):
-        self.data["spo2"] = float(self.ids.spo2.text)
-        self.data["weight_pd"] = float(self.ids.weight_pd.text)
+        self.data["spo2"] = float(self.ids.spo2.text) if self.ids.spo2.text != "" else 0.0
+        self.data["weight_pd"] = float(self.ids.weight_pd.text) if self.ids.weight_pd.text != "" else 0.0
         self.data["pressure"] = self.ids.pressure.text
         return self.data
     
 class ExamMetadataDetail(MDBoxLayout):
     exam = ObjectProperty(ldb.Exam())
-    title = StringProperty("Title")
-    note = StringProperty("")
+    title = StringProperty("Detalles")
+    notes = StringProperty("")
+    diagnostic = StringProperty("")
 
     def populate(self, exam_id):
-        app_session = MDApp.get_running_app().session
-        self.title = "Detalles"
-        try:
-            self.exam = app_session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
-            return self.exam.ekg_id
-        except sqlalchemy.orm.exc.NoResultFound as e:
-            logging.error(e)
-            toast('Hubo un error al buscar el examen.')
-    
-    def on_exam(self, instance, value):
-
+        
         def exam_status_text_mapper():
-            if value.status == "GUARDADO":
-                return value.status + "\n" + value.created.strftime("%d-%m-%Y")
-            if value.status == "ENVIADO":
-                return value.status + "\n" + value.sent.strftime("%d-%m-%Y")
-            if value.status == "DIAGNOSTICADO":
-                return value.status + "\n" + value.diagnosed.strftime("%d-%m-%Y")
+            if self.exam.status == "GUARDADO":
+                return self.exam.status + "\n" + self.exam.created.strftime("%d-%m-%Y")
+            if self.exam.status == "ENVIADO":
+                return self.exam.status + "\n" + self.exam.sent.strftime("%d-%m-%Y")
+            if self.exam.status == "DIAGNOSTICADO":
+                return self.exam.status + "\n" + self.exam.diagnosed.strftime("%d-%m-%Y")
         
         def exam_satus_color_mapper():
-            if value.status == "GUARDADO":
+            if self.exam.status == "GUARDADO":
                 return [0.7, 0.05, 0.05, 1]
-            if value.status == "ENVIADO":
+            if self.exam.status == "ENVIADO":
                 return [0.05, 0.05, 0.7, 1]
-            if value.status == "DIAGNOSTICADO":
+            if self.exam.status == "DIAGNOSTICADO":
                 return [0.05, 0.7, 0.05, 1]
-            
-        logging.warning(f"Exam ID: {value.id}")
-        self.ids.info.icon = MDApp.get_running_app().icons.get(value.patient.sex)
-        self.ids.info.text = "Nombre: " + value.patient.first_name + " " + value.patient.last_name + "\n" + "Edad: " + str(value.patient.age()) + " años"
-        self.ids.spo2.text = f"{value.spo2} %"
-        self.ids.weight_pd.text = f"{value.weight_pd} lbs"
-        self.ids.pressure.text = value.pressure
-        self.ids.bpm.text = str(value.ekg.bpm) + " bpm"
-        self.ids.sample_rate.text = str(value.ekg.sample_rate) + " sps"
-        self.ids.gain.text = str(value.ekg.gain)
-        self.ids.status.text = exam_status_text_mapper()
-        self.ids.status.text_color = exam_satus_color_mapper() 
-        
+
+        try:
+            logging.warning(f"EXAM ID: {exam_id}")
+            app_session = MDApp.get_running_app().session
+            self.exam = app_session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
+            self.ids.info.icon = MDApp.get_running_app().icons.get(self.exam.patient.sex)
+            self.ids.info.text = "Nombre: " + self.exam.patient.first_name + " " + self.exam.patient.last_name + "\n" + "Edad: " + str(self.exam.patient.age()) + " años"
+            self.ids.spo2.text = f"{self.exam.spo2} %"
+            self.ids.weight_pd.text = f"{self.exam.weight_pd} lbs"
+            self.ids.pressure.text = self.exam.pressure
+            self.ids.bpm.text = str(self.exam.ekg.bpm) + " bpm"
+            self.ids.sample_rate.text = str(self.exam.ekg.sample_rate) + " sps"
+            self.ids.leads.text = "1 leads"
+            self.ids.status.text = exam_status_text_mapper()
+            self.ids.status.text_color = exam_satus_color_mapper()
+            self.notes = self.exam.notes
+            self.diagnostic = self.exam.diagnostic
+            return self.exam.ekg_id
+        except SQLAlchemyError as e:
+            logging.error(e)
+            toast('Hubo un error al buscar el examen.')
+        except Exception as e:
+            logging.critical(e)
+            toast("Error desconocido")
+
 class OKDevicePanel(MDBoxLayout):
     title = StringProperty("Title")
     sample_rate = StringProperty("T. de muestreo: ")

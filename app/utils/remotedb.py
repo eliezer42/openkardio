@@ -50,3 +50,17 @@ def create_object(objDict, collection):
 
 def update_object(objDict, collection, id):
     logging.info('Updating...')
+
+def retrieve_objects(collection, field, value):
+    try:
+        logging.debug("Retrieving...")
+        return db.collection(collection).where(field, "==", value).get()
+    except Exception as e:
+        logging.error(e)
+
+def retrieve_all_objects(collection):
+    try:
+        logging.debug("Retrieving...")
+        return db.collection(collection).get()
+    except Exception as e:
+        logging.error(e)

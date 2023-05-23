@@ -15,6 +15,7 @@ MDNavigationLayout:
             name: "homescreen"
             title: "OpenKardio"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            right_items: [['refresh-circle', lambda _: app.retrieve_own_cases()]]
             MDLabel:
                 id: out
                 halign: "center"
@@ -39,29 +40,23 @@ MDNavigationLayout:
             name: "ekg_list_view"
             title: "Exámenes"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            right_items: [['plus-box', lambda _: app.go_to("select_patient_view")]]
             on_enter: app.root.ids.exam_list.populate()
             ExamList:
                 id: exam_list
-            MDFloatingActionButton:
-                icon: "plus-circle-outline"
-                md_bg_color: app.theme_cls.accent_dark
-                pos_hint: {'center_x':0.9, 'center_y':0.15}
-                on_release:
-                    screen_manager.current = 'select_patient_view'
-                    screen_manager.transition.direction = 'left'
 
 
         ToolbarScreen:
             name: "ekg_detail_view"
-            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)]]
+            right_items: [['square', lambda _: ekg_plot.reset()],['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['refresh-circle', lambda _: app.retrieve_own_cases()]]
             title: "View ekg"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
             on_enter:
-                app.root.ids.ekg_plot.populate(
-                app.root.ids.exam_metadata_detail.populate(self.object_id)
-                )
+                app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
+                app.root.ids.notes.text = app.root.ids.exam_metadata.notes
+                app.root.ids.diagnostic.text = app.root.ids.exam_metadata.diagnostic
             ExamMetadataDetail:
-                id: exam_metadata_detail
+                id: exam_metadata
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
@@ -73,9 +68,9 @@ MDNavigationLayout:
                     width: self.parent.width
             MDBoxLayout:
                 orientation:'horizontal'
-                adaptive_height: True
-                padding: "8dp"
-                spacing: "8dp"
+                size_hint_y: 0.25
+                padding: "2dp"
+                spacing: "2dp"
                 MDLabel:
                     text: "Comentarios:"
                     font_style: "Subtitle2"
@@ -84,21 +79,25 @@ MDNavigationLayout:
                     theme_text_color: "Custom"
                     text_color: 0, 0, 0.9, 1
                 MDLabel:
-                    id: origin_note
-                    md_bg_color: 1,1,1,1
+                    id: notes
+                    md_bg_color: 1,1,1,0.94
+                    font_style: "Body2"
             MDBoxLayout:
                 orientation:'horizontal'
-                adaptive_height: True
+                size_hint_y: 0.25
+                padding: "2dp"
+                spacing: "2dp"
                 MDLabel:
                     text: "Diagnóstico:"
                     font_style: "Subtitle2"
                     halign: "right"
                     size_hint_x: 0.3
                     theme_text_color: "Custom"
-                    text_color: 0, 0.9, 0, 1
+                    text_color: 0.1, 0.7, 0.1, 1
                 MDLabel:
-                    id: diagnostic_note
-                    md_bg_color: 1,1,1,1
+                    id: diagnostic
+                    md_bg_color: 1,1,1,0.94
+                    font_style: "Body2"
 
 
         ToolbarScreen:
@@ -116,7 +115,7 @@ MDNavigationLayout:
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
             on_enter:
                 app.root.ids.new_exam_metadata.populate(self.object_id)
-                app.root.ids.new_ekg.clear_ekg()
+                app.root.ids.new_ekg.reset()
             ExamMetadataForm:
                 id: new_exam_metadata
             OKDevicePanel:
@@ -151,23 +150,18 @@ MDNavigationLayout:
             name: "patient_list_view"
             title: "Pacientes"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            right_items: [['plus-box', lambda _: app.go_to("patient_create_view")]]
             on_enter: app.root.ids.patient_list.populate()
             ScrollView:
                 PatientList:
                     id: patient_list
-            MDFloatingActionButton:
-                icon: "plus-circle-outline"
-                md_bg_color: app.theme_cls.accent_dark
-                pos_hint: {'center_x':0.9, 'center_y':0.15}
-                on_release: 
-                    screen_manager.current = 'patient_create_view'
-                    screen_manager.transition.direction = 'left'
 
 
         ToolbarScreen:
             name: "patient_detail_view"
             title: "View Patient"
-            action_items: [['arrow-left', lambda *args : app.go_back("patient_list_view")]]
+            action_items: [['arrow-left', lambda _ : app.go_back("patient_list_view")]]
+            right_items: [['delete', lambda _: app.delete_patient(self.object_id)]]
             on_enter: app.root.ids.patient_detail.populate(self.object_id)
             PatientDetail:
                 id: patient_detail
@@ -180,7 +174,6 @@ MDNavigationLayout:
             ScrollView:
                 PatientForm:
                     id: patient_form
-                    header: "Ingrese información solicitada"
 
 
         ToolbarScreen:

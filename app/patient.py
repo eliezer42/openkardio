@@ -2,15 +2,15 @@ import utils.remotedb as rdb
 import utils.localdb as ldb
 import sqlalchemy
 import logging
-from datetime import date
+from datetime import date, datetime
 from okwidgets import OKListItem
 from kivy.properties import StringProperty, ObjectProperty, BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.list import MDList
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.pickers import MDDatePicker
 from kivymd.toast import toast
+from sqlalchemy.exc import SQLAlchemyError
 
 class PatientList(MDBoxLayout):
     def populate(self, text="", search=False):
@@ -25,7 +25,7 @@ class PatientList(MDBoxLayout):
                     "secondary_text": f"Expediente no.: {instance.record}",
                     "tertiary_text": f"Edad: {instance.age()} años",
                     "icon": "face-man" if instance.sex == "M" else "face-woman",
-                    "screen": "ekg_create_view",
+                    "screen": "patient_detail_view",
                     "propagate": True
                 }
             )
@@ -46,19 +46,18 @@ class PatientDetail(MDBoxLayout):
     def populate(self, patient_id):
         app_session = MDApp.get_running_app().session
         try:
-            self.patient = app_session.query(ldb.Patient).filter(ldb.Patient.id == patient_id).one()
-        except sqlalchemy.orm.exc.NoResultFound:
+            self.patient = app_session.query(ldb.Patient).get(patient_id)
+            self.sex_icon = "face-woman" if self.patient.sex == 'F' else "face-man"
+            self.ids.name.text = "Nombres: " + self.patient.first_name + "\n" + "Apellidos: " + self.patient.last_name
+            self.ids.age.text = "Edad: " + str(self.patient.age()) + " años"
+            self.ids.identification.text = "Cédula: " + self.patient.identification
+            self.ids.record.text = "Expediente: " + self.patient.record
+            self.ids.address.text = "Domicilio: " + self.patient.address
+            self.ids.contact.text = "Contacto de emergencia: "  + self.patient.emergency_contact
+        except SQLAlchemyError as e:
+            logging.error(e)
             toast('Hubo un error al buscar el paciente.')
 
-    def on_patient(self, instance, value):
-        logging.warning(f"Patient ID: {value.id}")
-        self.sex_icon = "face-woman" if value.sex == 'F' else "face-man"
-        self.ids.name.text = "Nombres: " + value.first_name + "\n" + "Apellidos: " + value.last_name
-        self.ids.age.text = "Edad: " + str(value.age()) + " años"
-        self.ids.identification.text = "Cédula: " + value.identification
-        self.ids.record.text = "Expediente: " + value.record
-        self.ids.address.text = "Domicilio: " + value.address
-        self.ids.contact.text = "Contacto de emergencia: "  + value.emergency_contact
 
 
 class FormField(MDBoxLayout):
@@ -68,33 +67,20 @@ class FormField(MDBoxLayout):
     value = ObjectProperty()
 
 class PatientForm(MDBoxLayout):
-    header = StringProperty()
     sex_menu = ObjectProperty()
     date_dialog = ObjectProperty()
     editing = BooleanProperty()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.date_dialog = MDDatePicker(title="FECHA DE NAC")
-        self.date_dialog.bind(on_save=self.on_save, on_cancel=self.on_cancel)
 
     def set_sex(self, dropdown_item_text):
         self.ids.sex.text = dropdown_item_text
+        self.sex_menu.dismiss()
     
     def on_save(self, instance, value, date_range):
         self.ids.birth_date.text = value.strftime("%d/%m/%Y")
         self.ids.birth_date.value = value
-
-    def on_cancel(self, instance, value):
-        self.date_dialog.close()
-
-    def show_date_picker(self):
-        if self.editing:
-            date_to_show = date.today()
-            self.date_dialog.day = date_to_show.day
-            self.date_dialog.month = date_to_show.month
-            self.date_dialog.year = date_to_show.year
-        self.date_dialog.open()
 
     def clear_fields(self):
         for widget in self.children:
@@ -106,6 +92,8 @@ class PatientForm(MDBoxLayout):
 
     def save_form(self):
         patient_data = {}
+        logging.debug("Date:" + self.ids.birth_date.text)
+        self.ids.birth_date.value = datetime.strptime(self.ids.birth_date.text,"%d/%m/%Y").date()
         for field in self.ids.keys():
             patient_data[field] = self.ids[field].value
         new_patient = ldb.Patient(**patient_data)

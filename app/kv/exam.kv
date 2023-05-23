@@ -59,18 +59,19 @@
     orientation: 'vertical'
     adaptive_height: True
     padding: dp(8)
-    spacing: dp(8)
+    spacing: dp(12)
     md_bg_color: "#f4dedc"
     MDLabel:
         text: root.title
         size_hint_x: 1
+        size_hint_y: 0.2
         halign: 'center'
         font_style: "Subtitle2"
     MDBoxLayout:
         orientation: 'horizontal'
         adaptive_height: True
         padding: dp(8)
-        spacing: dp(4)
+        spacing: dp(8)
         OKIconItem:
             id: info
             size_hint_x: 0.5
@@ -105,8 +106,8 @@
             id: sample_rate
             icon: 'chart-timeline-variant'
         OKIconItem:
-            id: gain
-            icon: 'ruler'
+            id: leads
+            icon: 'heart-flash'
 
 
 <ExamMetadataForm>:

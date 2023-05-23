@@ -104,92 +104,104 @@
     padding: "8dp"
     spacing: "6dp"
     adaptive_height: True
-    MDLabel:
-        text: root.header
-        halign: "center"
-        font_style: "H6"
     FormField:
         id: first_name
         label: "Nombres:"
         MDTextField:
             text: self.parent.text
             hint_text: "Nombres del paciente*"
-            multiline: False
             error: self.parent.error
             helper_text_mode: "on_error"
             helper_text: "Requerido"
             on_text: self.parent.value = self.text
+            mode: "fill"
+            fill_color_normal: 0.9, 0.9, 0.9, 0.8
+            fill_color_focus: 1, 1, 1, 0.9
     FormField:
         id: last_name
         label: "Apellidos:"
         MDTextField:
             text: self.parent.text
             hint_text: "Apellidos del paciente*"
-            multiline: False
             error: self.parent.error
             helper_text_mode: "on_error"
             helper_text: "Requerido"
             on_text: self.parent.value = self.text
+            mode: "fill"
+            fill_color_normal: 0.9, 0.9, 0.9, 0.8
+            fill_color_focus: 1, 1, 1, 0.9
     FormField:
         id: address
         label: "Domicilio:"
         MDTextField:
             text: self.parent.text
             hint_text: "Dirección convencional"
-            multiline: False
             on_text: self.parent.value = self.text
+            mode: "fill"
+            fill_color_normal: 0.9, 0.9, 0.9, 0.8
+            fill_color_focus: 1, 1, 1, 0.9
     FormField:
         id: identification
         label: "Cédula:"
         MDTextField:
             text: self.parent.text
             hint_text: "Cédula de identidad"
-            multiline: False
             max_text_length: 16
             min_text_length: 14
             on_text: self.parent.value = self.text
+            mode: "fill"
+            fill_color_normal: 0.9, 0.9, 0.9, 0.8
+            fill_color_focus: 1, 1, 1, 0.9
     FormField:
         id: sex
         label: "Sexo:"
         MDTextField:
             text: self.parent.text
             hint_text: "Seleccione el sexo presionando aquí"
-            multiline: False
             error: self.parent.error
             helper_text_mode: "on_error"
             helper_text: "Requerido"
             icon_right: "arrow-down-drop-cirle-outline"
             on_focus: if self.focus: app.root.ids.patient_form.sex_menu.open()
             on_text: self.parent.value = self.text[0] if len(self.text) else ""
+            mode: "fill"
+            fill_color_normal: 0.9, 0.9, 0.9, 0.8
+            fill_color_focus: 1, 1, 1, 0.9
     FormField:
         id: birth_date
         label: "Fecha de nacimiento:"
         MDTextField:
-            text: self.parent.text
-            hint_text: "Seleccione la fecha (dd/mm/aaaa)*"
-            multiline: False
+            hint_text: "Escriba la fecha (dd/mm/aaaa)*"
             helper_text_mode: "on_error"
-            helper_text: "Requerido"
-            icon_right: "calendar"
-            on_focus: if self.focus: root.show_date_picker()
+            on_text: self.parent.text = self.text
+            validator: "date"
+            date_format: "dd/mm/yyyy"
+            date_interval: "01/01/1900", None
+            mode: "fill"
+            fill_color_normal: 0.9, 0.9, 0.9, 0.8
+            fill_color_focus: 1, 1, 1, 0.9
     FormField:
         id: record
         label: "Expediente:"
         MDTextField:
             text: self.parent.text
-            hint_text: "Ingrese número de expediente*"
-            multiline: False
+            hint_text: "Número de expediente*"
             helper_text_mode: "on_error"
             helper_text: "Requerido"
             on_text: self.parent.value = self.text
+            mode: "fill"
+            fill_color_normal: 0.9, 0.9, 0.9, 0.8
+            fill_color_focus: 1, 1, 1, 0.9
     FormField:
         id: emergency_contact
         label: "Contacto de emergencia:"
         MDTextField:
             text: self.parent.text
-            hint_text: "Ingrese nombre, parentesco y número de teléfono"
-            multiline: True
+            hint_text: "Nombre, parentesco y teléfono"
             on_text: self.parent.value = self.text
+            mode: "fill"
+            fill_color_normal: 0.9, 0.9, 0.9, 0.8
+            fill_color_focus: 1, 1, 1, 0.9
     MDBoxLayout:
         orientation: 'horizontal'
         adaptive_height: True
@@ -197,10 +209,10 @@
         spacing: "8dp"
         Widget:
         MDRaisedButton:
-            text: "OK"
+            text: "GUARDAR"
             on_release: 
-                app.root.ids.patient_detail.populate(root.save_form())
+                app.root.ids.screen_manager.get_screen("patient_detail_view").object_id = root.save_form()
                 app.root.ids.screen_manager.current = "patient_detail_view"
         MDFlatButton:
-            text: "CANCEL"
+            text: "CANCELAR"
             on_release: app.go_back("patient_list_view")
