@@ -1,22 +1,21 @@
-import logging
+from kivy.logger import Logger
 from sqlalchemy.exc import SQLAlchemyError
 import utils.localdb as ldb
+import utils.remotedb as rdb
 import numpy as np
 import utils.utils as utils
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
-from kivy.graphics import Color, Line, Rectangle, RoundedRectangle
-from kivy.metrics import dp
+from kivy.graphics import Color, Line, Rectangle
 from kivy.properties import DictProperty, StringProperty, ListProperty, ObjectProperty, BooleanProperty, NumericProperty, ColorProperty
 from kivymd.app import MDApp
-from kivymd.uix.list import MDList
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.toast import toast
-from okwidgets import OKListItem
+
 import pickle
 
 class Plot(Widget):
-    sample_rate = NumericProperty(240)
+    sample_rate = NumericProperty(480)
     top_of_scale = NumericProperty(26400)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
@@ -36,7 +35,7 @@ class Plot(Widget):
         self.time_generator = utils.time_gen(self.sample_rate)
         with self.canvas.after:
             Color(0, 0, 0, 1)
-            self.line = Line(points=[], width = 1)
+            self.line = Line(points=[], width = 1.5)
 
     def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)
@@ -67,7 +66,7 @@ class Plot(Widget):
 
     def on_next_samples(self, *args):
         if len(self.next_samples):
-            logging.info(f"New samples: {len(self.next_samples)}")
+            Logger.info(f"New samples: {len(self.next_samples)}")
             next_points = [point for sample in self.next_samples for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
                                                 np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
             self.line.points += next_points
@@ -84,7 +83,7 @@ class Plot(Widget):
                 self.update_plot_event.cancel()
                 self.sample_gen.stop()
             except Exception as e:
-                logging.error(e)
+                Logger.error(e)
  
     def plot_grid(self, *args):
         with self.canvas.before:
@@ -116,13 +115,13 @@ class Plot(Widget):
     def populate(self, ekg_id):
         self.reset()
         try:
-            logging.warning(f"EKG ID: {ekg_id}")
-            app_session = MDApp.get_running_app().session
-            ekg = app_session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
-            logging.debug(f"EKG LENGTH: {len(pickle.loads(ekg.signal))}")
+            Logger.warning(f"EKG ID: {ekg_id}")
+            app = MDApp.get_running_app()
+            ekg = app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
+            Logger.debug(f"EKG LENGTH: {len(pickle.loads(ekg.signal))}")
             self.next_samples = pickle.loads(ekg.signal)
         except Exception as e:
-            logging.error(e)
+            Logger.error(e)
 
     def get_ekg(self):
         if len(self.ekg_samples):
@@ -177,8 +176,12 @@ class ExamList(MDBoxLayout):
             )
 
         self.ids.rv.data = []
-        app_session = MDApp.get_running_app().session
-        for instance in app_session.query(ldb.Exam).order_by(ldb.Exam.id):
+        app = MDApp.get_running_app()
+        field = ldb.Exam.destination_id if (app.store['app']['mode'] == 'H') else ldb.Exam.origin_id
+        query = app.session.query(ldb.Exam)\
+            .filter(field == app.store['user']['id'])\
+            .order_by(ldb.Exam.id)
+        for instance in query:
             if search:
                 if text in instance.patient.first_name or\
                     text in instance.patient.last_name or\
@@ -229,7 +232,7 @@ class ExamMetadataForm(MDBoxLayout):
             self.ids.weight_pd.text = ""
             self.ids.pressure.text = ""
         except SQLAlchemyError as e:
-            logging.error(e)
+            Logger.error(e)
             toast('Hubo un error al buscar el paciente.')
 
     def save(self):
@@ -243,6 +246,7 @@ class ExamMetadataDetail(MDBoxLayout):
     title = StringProperty("Detalles")
     notes = StringProperty("")
     diagnostic = StringProperty("")
+
 
     def populate(self, exam_id):
         
@@ -263,11 +267,11 @@ class ExamMetadataDetail(MDBoxLayout):
                 return [0.05, 0.7, 0.05, 1]
 
         try:
-            logging.warning(f"EXAM ID: {exam_id}")
-            app_session = MDApp.get_running_app().session
-            self.exam = app_session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
+            Logger.warning(f"EXAM ID: {exam_id}")
+            app = MDApp.get_running_app()
+            self.exam = app.session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
             self.ids.info.icon = MDApp.get_running_app().icons.get(self.exam.patient.sex)
-            self.ids.info.text = "Nombre: " + self.exam.patient.first_name + " " + self.exam.patient.last_name + "\n" + "Edad: " + str(self.exam.patient.age()) + " años"
+            self.ids.info.text = self.exam.patient.first_name + " " + self.exam.patient.last_name + "\n" + str(self.exam.patient.age()) + " años"
             self.ids.spo2.text = f"{self.exam.spo2} %"
             self.ids.weight_pd.text = f"{self.exam.weight_pd} lbs"
             self.ids.pressure.text = self.exam.pressure
@@ -276,14 +280,14 @@ class ExamMetadataDetail(MDBoxLayout):
             self.ids.leads.text = "1 leads"
             self.ids.status.text = exam_status_text_mapper()
             self.ids.status.text_color = exam_satus_color_mapper()
-            self.notes = self.exam.notes
-            self.diagnostic = self.exam.diagnostic
+            app.root.ids.notes.text = self.exam.notes
+            app.root.ids.diagnostic.text = self.exam.diagnostic
             return self.exam.ekg_id
         except SQLAlchemyError as e:
-            logging.error(e)
+            Logger.error(e)
             toast('Hubo un error al buscar el examen.')
         except Exception as e:
-            logging.critical(e)
+            Logger.critical(e)
             toast("Error desconocido")
 
 class OKDevicePanel(MDBoxLayout):
@@ -298,6 +302,7 @@ class OKDevicePanel(MDBoxLayout):
     def set_status(self):
         if self.status == "Desconectado":
             self.status = "Conectando..."
+            MDApp.get_running_app().ble.connect()
         elif self.status == "Conectando...":
             self.status = "Conectado"
         elif self.status == "Conectado":

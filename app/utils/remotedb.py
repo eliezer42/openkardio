@@ -1,66 +1,96 @@
-import logging
-from kivy.utils import platform
-from array import array
+import time
+import requests
+from kivy.logger import Logger
 
-if platform == 'android':
+class RDBException(Exception):
+    pass
 
-    from jnius import autoclass, cast
+def new_obj_id() -> str:
+    return str(round(time.time() * 1000))
 
-    PythonActivity = autoclass('org.kivy.android.PythonActivity')
-    currentActivity = cast('android.app.Activity', PythonActivity.mActivity)
-    context = cast('android.content.Context', currentActivity.getApplicationContext())
-    FirebaseApp = autoclass('com.google.firebase.FirebaseApp')
-    FirebaseFirestore = autoclass('com.google.firebase.firestore.FirebaseFirestore')
-    Blob = autoclass('com.google.firebase.firestore.Blob')
-    HashMap = autoclass('java.util.HashMap')
+def create_object(obj_class:str,obj:dict) -> str:
+    
+    obj_id = new_obj_id()
+    
+    r = requests.put(f'https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}/{obj_id}.json',json=obj)
 
-    app = FirebaseApp.initializeApp(context)
-    db = FirebaseFirestore.getInstance()
+    if r.status_code != 200:
+        raise RDBException('Creating object of type [{0}] failed. Error: {1}'.format(obj_class,r.json()["error"]))
+    
+    return obj_id
 
-else:
-    import firebase_admin
-    from firebase_admin import credentials
-    from firebase_admin import firestore
+def update_object(obj_class:str, obj_id:str, obj_data:dict):
+    
+    r = requests.patch(f'https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}/{obj_id}.json',json=obj_data)
+    Logger.info(f'URL: https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}/{obj_id}.json')
+    if r.status_code != 200:
+        raise RDBException('Updating object of type [{0}] failed. Error: {1}'.format(obj_class,r.json()["error"]))
 
-    # Use a service account.
-    cred = credentials.Certificate('./openkardio-6586d-firebase-adminsdk-432xd-1c800391f7.json')
 
-    # Application Default credentials are automatically created.
-    app = firebase_admin.initialize_app(cred)
-    db = firestore.client()
+def retrieve_object(obj_class:str,obj_id:str) -> dict:
+    
+    r = requests.get(f'https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}/{obj_id}.json')
 
-def create_object(objDict, collection):
-    logging.info('Creating...')
-    doc_ref = db.collection(collection).document()
+    if r.status_code != 200:
+        raise RDBException('Fetching object of type [{0}] failed. Error: {1}'.format(obj_class,r.json()["error"]))
+    
+    return r.json()
 
-    if platform != 'android':
-        doc_ref.set(objDict)
-        logging.info('Created')
-        return doc_ref.id
-    objMap = HashMap()
-    logging.info(type(objMap))
-    for k, v in objDict.items():
-        if k == "signal":
-            objMap.put(k,Blob.fromBytes(v))
-            continue
-        objMap.put(k, v)
-    doc_ref.set(objMap)
-    logging.info('Created')
-    return doc_ref.id
 
-def update_object(objDict, collection, id):
-    logging.info('Updating...')
+def retrieve_objects(obj_class:str, field:str, value):
 
-def retrieve_objects(collection, field, value):
-    try:
-        logging.debug("Retrieving...")
-        return db.collection(collection).where(field, "==", value).get()
-    except Exception as e:
-        logging.error(e)
+    if type(value) is str:
+        r = requests.get(f'https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}.json?orderBy="{field}"&equalTo="{value}"')
+    else:
+        r = requests.get(f'https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}.json?orderBy="{field}"&equalTo={value}')
 
-def retrieve_all_objects(collection):
-    try:
-        logging.debug("Retrieving...")
-        return db.collection(collection).get()
-    except Exception as e:
-        logging.error(e)
+    if r.status_code != 200:
+        print(r.reason)
+        raise RDBException('Fetching object of type [{0}] failed. Error: {1}'.format(obj_class,r.json()["error"]))
+    
+    return r.json()
+
+def retrieve_all_objects(obj_class:str):
+    
+    r = requests.get(f'https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}.json')
+
+    if r.status_code != 200:
+        raise RDBException('Fetching object of type [{0}] failed. Error: {1}'.format(obj_class,r.json()["error"]))
+    
+    return r.json()
+
+
+def retrieve_all_ids(obj_class:str):
+    
+    r = requests.get(f'https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}.json?shallow=true')
+
+    if r.status_code != 200:
+        raise RDBException('Fetching object of type [{0}] failed. Error: {1}'.format(obj_class,r.json()["error"]))
+    
+    return r.json()
+
+def delete_object(obj_class:str,obj_id) -> bool:
+
+    r = requests.delete(f'https://openkardio-6586d-default-rtdb.firebaseio.com/{obj_class}/{obj_id}.json')
+
+    if r.status_code != 200:
+        raise RDBException('Fetching object of type [{0}] failed. Error: {1}'.format(obj_class,r.json()["error"]))
+    
+
+
+def main():
+    new_user_id = create_object(
+        "users",
+        {
+            "name":"Guillermo",
+            "age":27,
+            "blob":list(b'\x45\x36\x55\xf6\x36\x55\xf6\x36\x55\xf6\x36\x55\xf6')
+        }
+    )
+    print("Created")
+    print(retrieve_all_objects("users"))
+    print("Retrieved")
+
+if __name__ == '__main__':
+    main()
+

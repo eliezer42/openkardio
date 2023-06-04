@@ -1,23 +1,21 @@
-import logging
 import asyncio
 import array
+import json
+from kivy.logger import Logger
+import logging
 import utils.remotedb as rdb
 import utils.localdb as ldb
 import utils.ble as ble
+from kivymd.app import MDApp
 from datetime import date, datetime
-from os.path import join, dirname, realpath
-from kivy.logger import Logger
 from kivy.lang import Builder
 from kivy.storage.jsonstore import JsonStore
 from kivy.metrics import dp
-from kivymd.app import MDApp
 from kivymd.theming import ThemeManager
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDRaisedButton, MDFlatButton
 from kivymd.toast import toast
-from plyer import notification
-from plyer.utils import platform
 from navdrawer import ItemDrawer
 from okwidgets import OKHospitalSelectorItem, OKCommentWidget
 from sqlalchemy.exc import SQLAlchemyError
@@ -29,7 +27,6 @@ class OpenKardioApp(MDApp):
     theme_cls = ThemeManager()
     icons = {'M': 'face-man', 'F': 'face-woman'}
     dialog = None
-    user_id = "CS1"
 
     def __init__(self):
         super().__init__()
@@ -37,29 +34,41 @@ class OpenKardioApp(MDApp):
         self.running = True
 
     def build(self):
-        logging.basicConfig(format='%(asctime)s %(message)s')
+        # logging.basicConfig(format='%(asctime)s %(message)s')
         self.theme_cls.material_style = "M3"
-        self.store = JsonStore("okconfig.json")
+        
         if __name__ == '__main__':
-            self.store["app"] = {"mode":"CS"}
-            self.store["user"] = {"id":"CS1"}
+            try:
+                self.store = JsonStore("okconfig.json")
+                self.user_id = self.store["user"]["id"]
+            except KeyError as e:
+                Logger.critical(e)
+                config_data = {
+                    "app": {"mode": "C"},
+                    "user": {"id": "CS1"},
+                    "device": {"sample_rate": 240}
+                }
+                with open('okconfig.json', 'w') as config_file:
+                    json.dump(config_data, config_file)
+            finally:
+                self.store = JsonStore("okconfig.json")
+                self.user_id = self.store["user"]["id"]
+                
+
             return Builder.load_file("main.kv")
         
     def on_start(self):
-        self.user_id = self.store["user"]["id"]
         self.session = ldb.Session()
         if self.session.query(ldb.Patient).first() is None:
-                self.populate_hospitals()
-                patient1 = ldb.Patient(first_name="Pedro", last_name="Perez", sex="M", birth_date=date(1998, 3, 28), record="123-456-789")
-                patient2 = ldb.Patient(first_name="Maria", last_name="Lopez", sex="F", birth_date=date(1970, 12, 13), record="123-456-789")
+                patient1 = ldb.Patient(first_name="Pedro", last_name="Perez", sex="M", birth_date=date(1998, 3, 28), record="123-456-789", identification="123")
+                patient2 = ldb.Patient(first_name="Maria", last_name="Lopez", sex="F", birth_date=date(1970, 12, 13), record="123-456-789", identification="321")
                 self.session.add_all([patient1, patient2])
                 self.session.commit()
-        self.retrieve_own_cases()
         self.root.ids.patient_form.sex_menu = MDDropdownMenu(caller = self.root.ids.patient_form.ids.sex,
                                                              width_mult = 3,
                                                              items = [{"viewclass": "OneLineListItem",
                                                                        "text": i,
-                                                                       "height": dp(56),
+                                                                       "height": dp(50),
                                                                        "on_release": lambda x=i: self.root.ids.patient_form.set_sex(x)} for i in ["Femenino", "Masculino"]])
 
         drawer_items = {
@@ -73,25 +82,26 @@ class OpenKardioApp(MDApp):
             self.root.ids.content_drawer.ids.md_list.add_widget(
                 ItemDrawer(icon=item_name, text=drawer_items[item_name]["text"], screen=drawer_items[item_name]["target"])
             )
-        
+        self.populate_hospitals()
+
     def on_stop(self):
         self.running = False
         self.session.close()
 
     def frame_handler(self, sender, data):
         """Simple notification handler which prints the data received."""
-        logging.info("{0}: {1}".format(sender, data))
+        Logger.info("{0}: {1}".format(sender, data))
         if len(data) == 1:
             self.ble.stop_receiving()
-            logging.error(f"Frame: Error while receiving frame.")
+            Logger.error(f"Frame: Error while receiving frame.")
             toast("Ocurrió un error desconocido")
         else:
             try:
                 samples = array.array('h', data).tolist()
                 self.root.ids.new_ekg.next_samples = samples
             except Exception as e:
-                logging.error(f"Frame: Error while decoding frame.")
-                logging.error(f"Frame: {e}")
+                Logger.error(f"Frame: Error while decoding frame.")
+                Logger.error(f"Frame: {e}")
 
     def go_back(self, previous):
         self.root.ids.screen_manager.current = previous
@@ -101,65 +111,118 @@ class OpenKardioApp(MDApp):
         self.root.ids.screen_manager.current = target
         self.root.ids.screen_manager.transition.direction = "left"
     
-    def do_notify(self):
-        try:
-            title = self.root.ids.demo.ids.notification_title.text
-            message = self.root.ids.demo.ids.notification_text.text
-            kwargs = {'title': title, 'message': message}
-            if platform == 'android':
-                kwargs['app_name'] = "OpenKardio"
-                kwargs['app_icon'] = join(dirname(realpath(__file__)),
-                                            'assets/plyer-icon.png')
-                notification.notify(**kwargs)
-            elif platform == 'linux':
-                print("***NOTIFICATION***")
-                print(kwargs)
-        except SQLAlchemyError as e:
-            logging.warning(e)
-    
-    def retrieve_own_cases(self):
-        try:
-            exam_query = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
-            exam_remote_ids = [exam.remote_id for exam in exam_query]
-            logging.debug(exam_remote_ids)
-            for case in rdb.retrieve_objects("Cases","origin_id",self.store["user"]["id"]):
-                case_dict = case.to_dict()
-                if case.id in exam_remote_ids:
-                    local_exam = self.session.query(ldb.Exam).filter(ldb.Exam.remote_id == case.id).one()
-                    if datetime.fromisoformat(case_dict['modified']) > local_exam.modified:
-                        timestamp = datetime.now().replace(microsecond=0)
-                        logging.debug(f"REMOTE:{case_dict['modified']}")
-                        local_exam.diagnostic = case_dict["diagnostic"]
-                        local_exam.status = "DIAGNOSTICADO"
-                        local_exam.modified = timestamp
-                        local_exam.diagnosed = timestamp
-                        self.session.commit()
-                logging.info(case_dict["created"])
-        except SQLAlchemyError as e:
-            logging.error(e)
-            toast("Error en la base de datos local.")
-            self.session.rollback()
-        except Exception as e:
-            logging.error(e)
-            toast("Error desconocido")
-            self.session.rollback()
 
     def populate_hospitals(self):
         try:
-            for hospital in rdb.retrieve_all_objects("Hospitals"):
-                logging.debug(hospital.id)
-                if self.session.query(ldb.Hospital).filter(ldb.Hospital.global_id == hospital.id).first() is None:
-                    hosp_data = hospital.to_dict()
-                    hosp_data["global_id"] = hospital.id
+            hospitals = rdb.retrieve_all_objects("Hospitals")
+            for gid in hospitals:
+                if self.session.query(ldb.Hospital).filter(ldb.Hospital.global_id == gid).first() is None:
+                    hosp_data = hospitals[gid]
+                    hosp_data["global_id"] = gid
                     new_hosp = ldb.Hospital(**hosp_data)
                     self.session.add(new_hosp)
                     self.session.commit()
+                    Logger.info(f"NEW HOSP: {new_hosp.id}")
+
         except SQLAlchemyError as e:
-            logging.error(e)
+            Logger.error(e)
             toast("Error en la base de datos local.")
         except Exception as e:
-            logging.error(e)
+            Logger.error(f"Hospitals:{str(e)}")
             toast(e)
+
+    def retrieve_own_cases(self):
+        try:
+
+            exam_query = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
+            exam_remote_ids = [exam.remote_id for exam in exam_query]
+            remote_cases = rdb.retrieve_objects("Cases","origin_id",self.store["user"]["id"])
+            Logger.debug(f"REMOTE ID:{str(exam_remote_ids)}")
+            for gid in remote_cases:
+                case_dict = remote_cases[gid]
+                if gid in exam_remote_ids:
+                    local_exam = self.session.query(ldb.Exam).filter(ldb.Exam.remote_id == gid).one()
+                    if datetime.fromisoformat(case_dict['modified']) > local_exam.modified:
+                        timestamp = datetime.now().replace(microsecond=0)
+                        Logger.debug(f"REMOTE:{case_dict['modified']}")
+                        local_exam.diagnostic = case_dict["diagnostic"]
+                        local_exam.status = case_dict['status']
+                        local_exam.modified = timestamp
+                        local_exam.diagnosed = timestamp
+                        self.session.commit()
+
+        except SQLAlchemyError as e:
+            Logger.error(e)
+            toast("Error en la base de datos local.")
+            self.session.rollback()
+        except Exception as e:
+            Logger.error(e)
+            toast("Error desconocido")
+            self.session.rollback()
+    
+    def retrieve_foreign_cases(self):
+        try:
+ 
+            exam_query = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
+            exam_remote_ids = [exam.remote_id for exam in exam_query]
+            Logger.debug(f"REMOTE ID:{str(exam_remote_ids)}")
+            remote_cases = rdb.retrieve_objects("Cases","destination_id",self.store["user"]["id"])
+            for gid in remote_cases:
+                data = remote_cases[gid]
+                if gid not in exam_remote_ids:
+                    patient_query = self.session.query(ldb.Patient.identification).filter(ldb.Patient.identification != "")
+                    patient_ids = [patient.identification for patient in patient_query]
+                    if data.get('patient_identification') not in patient_ids:
+                        Logger.info("THIS GOT EXECUTED")
+                        patient = ldb.Patient(
+                            first_name = data.get('patient_first_name'),
+                            last_name = data.get('patient_last_name'),
+                            birth_date = datetime.strptime(data.get('patient_birth_date'),'%d-%m-%Y').date(),
+                            sex = data.get('patient_sex'),
+                            identification = data.get('patient_identification'),
+                            record = data.get('patient_record')
+                        )
+                        self.session.add(patient)
+                        self.session.commit()
+                    else:
+                        patient = self.session.query(ldb.Patient.id).filter(ldb.Patient.identification == data.get('patient_identification')).one()
+                    ekg = ldb.Ekg(
+                        sample_rate = data.get('sample_rate'),
+                        bpm = data.get('bpm'),
+                        leads = data.get('leads'),
+                        signal = bytes(data.get('signal')),
+                        # gain = data.get('gain')
+                        )
+                    self.session.add(ekg)
+                    self.session.commit()
+                    exam = ldb.Exam(
+                        name = 'EKG-' + data.get('created')[:10].replace('-','') + '-' + str(ekg.id),
+                        origin_id = data.get('origin_id'),
+                        remote_id = gid,
+                        status = data.get('status'),
+                        pressure = data.get('pressure'),
+                        spo2 = data.get('spo2'),
+                        weight_pd = data.get('weight_pd'),
+                        destination_id = data.get('destination_id'),
+                        created = datetime.fromisoformat(data.get('created')),
+                        modified = datetime.fromisoformat(data.get('modified')),
+                        sent = datetime.fromisoformat(data.get('sent')),
+                        notes = data.get('notes'),
+                        ekg_id = ekg.id,
+                        patient_id = patient.id
+                    )
+
+                    self.session.add(exam)
+                    self.session.commit()
+
+        except SQLAlchemyError as e:
+            Logger.error(e)
+            toast("Error en la base de datos local.")
+            self.session.rollback()
+        except Exception as e:
+            Logger.error(e)
+            toast("Error desconocido")
+            self.session.rollback()
 
     def show_comment_dialog(self):
 
@@ -188,14 +251,13 @@ class OpenKardioApp(MDApp):
             new_ekg = ldb.Ekg(**ekg)
             self.session.add(new_ekg)
             self.session.commit()
-            logging.info("EKG ID:" + str(new_ekg.id))
             exam_data = {
                 'name':'EKG-' + date.today().strftime("%Y%m%d") + '-' + str(new_ekg.id),
                 'ekg_id':new_ekg.id,
                 'created':timestamp,
                 'modified':timestamp,
-                'origin_id':self.user_id,
-                'notes':notes,
+                'origin_id':self.store['user']['id'],
+                'notes':notes
             }
             exam_data.update(metadata)
             new_exam = ldb.Exam(**exam_data)
@@ -206,80 +268,126 @@ class OpenKardioApp(MDApp):
             self.root.ids.screen_manager.current = "ekg_detail_view"
             self.dialog.dismiss()
         except Exception as e:
-            logging.error(e)
+            Logger.error(e)
             self.session.rollback()
 
-    def send_exam(self, exam_id):
+    def send_exam(self, exam_id:ldb.Exam):
+            
         exam = self.session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
-        
-        def send_to_firestore(global_id:str):
-            remote_exam_id = None
+
+        def send_diagnostic(diagnostic:str):
             try:
-                logging.info('Sending case')
                 timestamp = datetime.now().replace(microsecond=0)
-                remote_exam_id = rdb.create_object({
-                    'exam_id':exam.id,
-                    'origin_id':exam.origin_id,
-                    'status':"ENVIADO",
-                    'destination_id':global_id,
-                    'created':exam.created.isoformat(),
-                    'modified':timestamp.isoformat(),
-                    'sent':timestamp.isoformat(),
-                    'diagnosed':'',
-                    'patient_name':exam.patient.name(),
-                    'patient_age':exam.patient.age(),
-                    'patient_identification':exam.patient.identification,
-                    'patient_record':exam.patient.record,
-                    'pressure':exam.pressure,
-                    'spo2':exam.spo2,
-                    'weight_pd':exam.weight_pd,
-                    'sample_rate':exam.ekg.sample_rate,
-                    'bpm':exam.ekg.bpm,
-                    'leads':exam.ekg.leads,
-                    'signal':exam.ekg.signal,
-                    'notes':exam.notes,
-                    'diagnostic':exam.diagnostic
-                },
-                "Cases")
+                updated_case = {'diagnostic':diagnostic,
+                                'diagnosed':timestamp.isoformat(),
+                                'modified':timestamp.isoformat(),
+                                'status':'DIAGNOSTICADO'
+                                }
+                rdb.update_object('Cases',exam.remote_id,updated_case)
+                updated_case['diagnosed'] = timestamp
+                updated_case['modified'] = timestamp
+                for key, value in updated_case.items():
+                    setattr(exam, key, value)
+                self.session.commit()
+                self.root.ids.exam_metadata.populate(exam_id)
+            except SQLAlchemyError as e:
+                Logger.error(e)
+                self.session.rollback()
+            finally:
+                self.dialog.dismiss()
+
+        def send_to_firebase(global_id:str):
+            Logger.debug(f"GLOBAL ID: {global_id}")
+            try:
+                timestamp = datetime.now().replace(microsecond=0)
+                remote_exam_id = rdb.create_object("Cases",
+                    {
+                        'exam_id':exam.id,
+                        'origin_id':exam.origin_id,
+                        'status':"ENVIADO",
+                        'destination_id':global_id,
+                        'created':exam.created.isoformat(),
+                        'modified':timestamp.isoformat(),
+                        'sent':timestamp.isoformat(),
+                        'diagnosed':'',
+                        'patient_first_name':exam.patient.first_name,
+                        'patient_last_name':exam.patient.last_name,
+                        'patient_birth_date':exam.patient.birth_date.strftime('%d-%m-%Y'),
+                        'patient_identification':exam.patient.identification,
+                        'patient_record':exam.patient.record,
+                        'patient_sex':exam.patient.sex,
+                        'pressure':exam.pressure,
+                        'spo2':exam.spo2,
+                        'weight_pd':exam.weight_pd,
+                        'sample_rate':exam.ekg.sample_rate,
+                        'bpm':exam.ekg.bpm,
+                        'leads':exam.ekg.leads,
+                        'gain':exam.ekg.gain,
+                        'signal':list(exam.ekg.signal),
+                        'notes':exam.notes,
+                        'diagnostic':exam.diagnostic
+                    }
+                )
                 exam.status = "ENVIADO"
                 exam.sent = timestamp
                 exam.modified = timestamp
                 exam.remote_id = remote_exam_id
                 self.session.commit()
-                logging.info(f"Remote ID: {remote_exam_id}")
+                Logger.info(f"Remote ID: {remote_exam_id}")
+                return remote_exam_id
             except SQLAlchemyError as e1:
                 self.session.rollback()
-                logging.error(f"SQL Error: {e1}")
+                Logger.error(f"SQL Error: {e1}")
             except Exception as e:
                 self.session.rollback()
-                logging.error(e)
-            return remote_exam_id
+                Logger.error(e)
 
-        def send_callback(global_id:str):
-            remote_id = send_to_firestore(global_id=global_id)
+        def send_callback(global_id):
+            remote_id = send_to_firebase(global_id)
             if remote_id is not None:
                 self.dialog.dismiss()
                 self.root.ids.screen_manager.get_screen("ekg_detail_view").title = exam.name
-                logging.debug(remote_id)
-                logging.debug(exam_id)
+                Logger.debug(f"CASE ID:{remote_id}")
+                exam.destination_id = global_id
+                self.session.commit()
                 self.root.ids.exam_metadata.populate(exam_id)
-                logging.info("FINISHED CALLBACK")
+                Logger.info("FINISHED CALLBACK")
                 return
+            Logger.warning("ALGO SALIO MAL")
             toast("Algo salió mal.")
             self.dialog.dismiss()
             
 
-        if "GUARDADO" != exam.status:
+        if "GUARDADO" != exam.status and self.store['app']['mode'] == 'C':
             toast(f"Este examen ya fue enviado.")
             return
-
-        self.dialog = MDDialog(
-            title="Hospital de destino",
-            type="simple",
-            items=[
-                OKHospitalSelectorItem(text=item.name, secondary_text=item.location, on_release=lambda _: send_callback(item.global_id)) for item in self.session.query(ldb.Hospital).order_by(ldb.Hospital.name)
-            ]
-        )
+        
+        if self.store['app']['mode'] != 'H':
+            hosp_list = self.session.query(ldb.Hospital).order_by(ldb.Hospital.name).all()
+            Logger.critical([hosp.global_id for hosp in hosp_list])
+            self.dialog = MDDialog(
+                title="Hospital de destino",
+                type="simple",
+                items=[
+                    OKHospitalSelectorItem(text=item.name, secondary_text=item.location, global_id=item.global_id, on_release=lambda x: send_callback(x.global_id)) for item in hosp_list
+                ]
+            )
+        else:
+            self.dialog = MDDialog(
+                title="Diagnóstico",
+                type="custom",
+                content_cls=OKCommentWidget(hint="Agregue su diagnóstico"),
+                buttons=[
+                    MDFlatButton(
+                        text="CANCELAR",
+                        on_release=lambda _: self.dialog.dismiss()
+                    ),
+                    MDRaisedButton(
+                        text="GUARDAR",
+                        on_release=lambda _: send_diagnostic(self.dialog.content_cls.ids.text_field.text)
+                    )
+                ]
+            )
         self.dialog.open()
 
     def delete_patient(self, patient_id):
@@ -289,10 +397,10 @@ class OpenKardioApp(MDApp):
             try:
                 self.session.delete(obj)
                 self.session.commit()
-                logging.info(f"Patient {patient_id} deleted successfully.")
+                Logger.info(f"Patient {patient_id} deleted successfully.")
             except SQLAlchemyError as e:
                 self.session.rollback()
-                logging.error(e)
+                Logger.error(e)
         
         def delete_callback():
             delete_from_db()
@@ -321,10 +429,10 @@ class OpenKardioApp(MDApp):
             try:
                 self.session.delete(obj)
                 self.session.commit()
-                logging.info(f"Exam {exam_id} deleted successfully.")
+                Logger.info(f"Exam {exam_id} deleted successfully.")
             except SQLAlchemyError as e:
                 self.session.rollback()
-                logging.error(e)
+                Logger.error(e)
 
         def delete_callback():
             delete_from_db()
@@ -345,8 +453,6 @@ class OpenKardioApp(MDApp):
             ],
         )
         self.dialog.open()
-
-    
 
 async def main(app):
     await asyncio.gather(app.async_run("asyncio"), app.ble.connection_handler())

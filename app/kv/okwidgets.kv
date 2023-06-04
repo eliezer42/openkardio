@@ -45,3 +45,92 @@
         max_text_length: 280
     Widget:
         height: "40dp"
+
+
+<OKIdTextField>:
+    size_hint_y: None
+    height: text_field.height
+    MDTextField:
+        id: text_field
+        hint_text: root.hint_text
+        icon_left: "account-circle"
+        size_hint_x: 0.5
+        pos_hint: {'center_x':0.5}
+        disabled: root.disabled
+    MDIconButton:
+        icon: "pencil"
+        pos_hint: {"center_y": .5}
+        pos: text_field.x + text_field.width - self.width + dp(8), 0
+        theme_text_color: "Hint"
+        on_release:
+            app.store['user'] = {'id':text_field.text}
+            self.icon = "content-save" if self.icon == "pencil" else "pencil"
+            root.disabled = False if root.disabled is True else True
+
+
+<ModeCheck>:
+    group: 'mode'
+    size_hint: None, None
+    size: dp(48), dp(48)
+
+<OKModeControl>:
+    MDLabel:
+        font_style: "Subtitle2"
+        text: "C. Salud"
+        pos_hint: {'x': 0.3,'center_y': .5}
+
+    ModeCheck:
+        id:C
+        value: "C"
+        pos_hint: {'x': .4, 'center_y': .5}
+        on_active: root.on_checkbox_active(*args)
+
+    MDLabel:
+        font_style: "Subtitle2"
+        text: "Hospital"
+        pos_hint: {'x': 0.6,'center_y': .5}
+
+    ModeCheck:
+        id:H
+        value: "H"
+        pos_hint: {'x': .7, 'center_y': .5}
+        on_active: root.on_checkbox_active(*args)
+
+<SampleRateCheck>:
+    group: 'sample_rate'
+    size_hint: None, None
+    size: dp(48), dp(48)
+
+<OKDeviceControl>:
+    MDLabel:
+        font_style: "Subtitle2"
+        text: "240"
+        pos_hint: {'x': 0.25,'center_y': .5}
+
+    SampleRateCheck:
+        id:240
+        value: '240'
+        pos_hint: {'x': .3, 'center_y': .5}
+        on_active: root.on_checkbox_active(*args)
+
+    MDLabel:
+        font_style: "Subtitle2"
+        text: "360"
+        pos_hint: {'x': 0.45,'center_y': .5}
+
+    SampleRateCheck:
+        id:360
+        value: '360'
+        pos_hint: {'x': .5, 'center_y': .5}
+        on_active: root.on_checkbox_active(*args)
+
+    MDLabel:
+        font_style: "Subtitle2"
+        text: "480"
+        pos_hint: {'x': 0.65,'center_y': .5}
+
+    SampleRateCheck:
+        id:480
+        value: '480'
+        pos_hint: {'x': .70, 'center_y': .5}
+        on_active: root.on_checkbox_active(*args)

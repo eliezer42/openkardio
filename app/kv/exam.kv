@@ -12,7 +12,7 @@
             icon: 'magnify'
         MDTextField:
             id: search_field
-            hint_text: 'Buscar paciente'
+            hint_text: 'Buscar examen'
             on_text: root.populate(self.text, True)
 
     RecycleView:
@@ -59,7 +59,7 @@
     orientation: 'vertical'
     adaptive_height: True
     padding: dp(8)
-    spacing: dp(12)
+    spacing: dp(8)
     md_bg_color: "#f4dedc"
     MDLabel:
         text: root.title
@@ -78,7 +78,7 @@
         MDLabel:
             id: status
             font_style: "Button"
-            size_hint_x: 0.14
+            size_hint_x: 0.25
             theme_text_color: "Custom"
     MDBoxLayout:
         orientation: 'horizontal'

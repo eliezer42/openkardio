@@ -1,12 +1,11 @@
-import logging
+from kivy.logger import Logger
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, LargeBinary, Float, DateTime, Date
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
-from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import create_database, database_exists
 from datetime import date, datetime
 
-SQLITE = 'sqlite:///ok.db'
+SQLITE = f'sqlite:///ok.db?check_same_thread=False'
 if not database_exists(SQLITE):
     create_database(SQLITE)
 
@@ -55,7 +54,7 @@ class Ekg(Base):
     id = Column(Integer, primary_key=True)
     sample_rate = Column(Integer)
     signal = Column(LargeBinary)
-    gain = Column(Float)
+    gain = Column(Float, default=1.0)
     bpm = Column(Integer)
     leads = Column(Integer, default=1)
     disabled = Column(Boolean, default=False)
@@ -78,6 +77,7 @@ class Exam(Base):
     weight_pd = Column(Float)
     notes = Column(String, default="")
     diagnostic = Column(String, default="")
+    unopened = Column(Boolean, default=True)
     disabled = Column(Boolean, default=False)
     ekg_id = Column(Integer, ForeignKey('ekgs.id'))
     patient_id = Column(Integer, ForeignKey('patients.id'))

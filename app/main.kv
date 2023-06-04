@@ -1,7 +1,6 @@
 #:kivy 2.1.0
 #:include kv/exam.kv
 #:include kv/navdrawer.kv
-#:include kv/notification.kv
 #:include kv/okwidgets.kv
 #:include kv/patient.kv
 #:include kv/toolbarscreen.kv
@@ -15,7 +14,7 @@ MDNavigationLayout:
             name: "homescreen"
             title: "OpenKardio"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            right_items: [['refresh-circle', lambda _: app.retrieve_own_cases()]]
+            right_items: [['refresh-circle',lambda _: app.retrieve_foreign_cases()]]
             MDLabel:
                 id: out
                 halign: "center"
@@ -41,22 +40,24 @@ MDNavigationLayout:
             title: "Exámenes"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
             right_items: [['plus-box', lambda _: app.go_to("select_patient_view")]]
-            on_enter: app.root.ids.exam_list.populate()
+            on_enter:
+                app.retrieve_own_cases()
+                app.root.ids.exam_list.populate()
+
             ExamList:
                 id: exam_list
 
 
         ToolbarScreen:
             name: "ekg_detail_view"
-            right_items: [['square', lambda _: ekg_plot.reset()],['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['refresh-circle', lambda _: app.retrieve_own_cases()]]
+            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['refresh-circle', lambda _: app.retrieve_own_cases()]]
             title: "View ekg"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
             on_enter:
                 app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
-                app.root.ids.notes.text = app.root.ids.exam_metadata.notes
-                app.root.ids.diagnostic.text = app.root.ids.exam_metadata.diagnostic
             ExamMetadataDetail:
                 id: exam_metadata
+                size_hint_y: 0.35
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
@@ -81,7 +82,6 @@ MDNavigationLayout:
                 MDLabel:
                     id: notes
                     md_bg_color: 1,1,1,0.94
-                    font_style: "Body2"
             MDBoxLayout:
                 orientation:'horizontal'
                 size_hint_y: 0.25
@@ -97,7 +97,6 @@ MDNavigationLayout:
                 MDLabel:
                     id: diagnostic
                     md_bg_color: 1,1,1,0.94
-                    font_style: "Body2"
 
 
         ToolbarScreen:
@@ -180,14 +179,41 @@ MDNavigationLayout:
             name: "config"
             title: "Configuración"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            on_enter:
+                uid.ids.text_field.text = app.store['user']['id']
+                mode_control.populate()
+                device_control.populate()
+            MDLabel:
+                text: "ID de Usuario"
+                font_style: "H4"
+                halign: "center"
+            OKIdTextField:
+                id: uid
+                md_bg_color: .8,.8,.9,.9
+            Widget:    
+            MDLabel:
+                text: "Modo de uso de la Aplicación"
+                font_style: "H4"
+                halign: "center"
+            OKModeControl:
+                id: mode_control
+                md_bg_color: .8,.8,.9,.9
+            Widget:
+            MDLabel:
+                text: "Frecuencia de Muestreo (sps)"
+                font_style: "H4"
+                halign: "center"
+            OKDeviceControl:
+                id: device_control
+                md_bg_color: .8,.8,.9,.9
+            Widget:
+            Widget:
 
 
         ToolbarScreen:
             name: "help"
             title: "Ayuda"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            NotificationDemo:
-                id: demo
 
 
     MDNavigationDrawer:

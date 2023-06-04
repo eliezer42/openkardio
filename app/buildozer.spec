@@ -13,7 +13,7 @@ package.domain = org.ok
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas
+source.include_exts = py,png,jpg,kv,atlas,json
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png
@@ -37,7 +37,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,plyer,kivy==2.1.0,kivymd==1.1.1,pillow,numpy,dateutil,sqlalchemy==1.4.40,sqlalchemy_utils==0.38.3,bleak,async_to_sync,async_timeout,typing_extensions
+requirements = python3,kivy==2.2.0,pillow,numpy,dateutil,sqlalchemy==1.4.40,sqlalchemy_utils==0.38.3,bleak,async_to_sync,async_timeout,typing_extensions,kivymd==1.2.0
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -93,16 +93,16 @@ fullscreen = 0
 #icon.adaptive_background.filename = %(source.dir)s/data/icon_bg.png
 
 # (list) Permissions
-android.permissions = INTERNET,BLUETOOTH,BLUETOOTH_ADMIN,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,ACCESS_BACKGROUND_LOCATION
+android.permissions = INTERNET,BLUETOOTH,BLUETOOTH_ADMIN,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,ACCESS_BACKGROUND_LOCATION,BLUETOOTH_SCAN,BLUETOOTH_CONNECT,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
 
 # (list) features (adds uses-feature -tags to manifest)
 #android.features = android.hardware.usb.host
 
 # (int) Target Android API, should be as high as possible.
-android.api = 30
+#android.api = 30
 
 # (int) Minimum API your APK / AAB will support.
-android.minapi = 26
+#android.minapi = 26
 
 # (int) Android SDK version to use
 #android.sdk = 20
@@ -297,7 +297,7 @@ android.allow_backup = True
 #p4a.fork = kivy
 
 # (str) python-for-android branch to use, defaults to master
-#p4a.branch = master
+p4a.branch = master
 
 # (str) python-for-android specific commit to use, defaults to HEAD, must be within p4a.branch
 #p4a.commit = HEAD
@@ -306,7 +306,7 @@ android.allow_backup = True
 #p4a.source_dir =
 
 # (str) The directory in which python-for-android should look for your own build recipes (if any)
-#p4a.local_recipes =
+p4a.local_recipes = ../../bleak/backends/p4android/recipes
 
 # (str) Filename to the hook for p4a
 #p4a.hook =

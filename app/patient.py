@@ -1,13 +1,9 @@
-import utils.remotedb as rdb
 import utils.localdb as ldb
-import sqlalchemy
-import logging
-from datetime import date, datetime
-from okwidgets import OKListItem
+from kivy.logger import Logger
+from datetime import datetime
 from kivy.properties import StringProperty, ObjectProperty, BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.list import MDList
 from kivymd.uix.textfield import MDTextField
 from kivymd.toast import toast
 from sqlalchemy.exc import SQLAlchemyError
@@ -55,7 +51,7 @@ class PatientDetail(MDBoxLayout):
             self.ids.address.text = "Domicilio: " + self.patient.address
             self.ids.contact.text = "Contacto de emergencia: "  + self.patient.emergency_contact
         except SQLAlchemyError as e:
-            logging.error(e)
+            Logger.error(e)
             toast('Hubo un error al buscar el paciente.')
 
 
@@ -92,7 +88,7 @@ class PatientForm(MDBoxLayout):
 
     def save_form(self):
         patient_data = {}
-        logging.debug("Date:" + self.ids.birth_date.text)
+        Logger.debug("Date:" + self.ids.birth_date.text)
         self.ids.birth_date.value = datetime.strptime(self.ids.birth_date.text,"%d/%m/%Y").date()
         for field in self.ids.keys():
             patient_data[field] = self.ids[field].value
@@ -100,5 +96,5 @@ class PatientForm(MDBoxLayout):
         app_session = MDApp.get_running_app().session
         app_session.add(new_patient)
         app_session.commit()
-        logging.warning('New Patient ID is %s', new_patient.id)
+        Logger.warning('New Patient ID is %s', new_patient.id)
         return new_patient.id
