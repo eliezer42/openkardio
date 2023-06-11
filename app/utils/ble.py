@@ -87,7 +87,7 @@ class BleHandler(EventDispatcher):
             self.state = ConnState.IDLE
             self.event_disconnected.set()
 
-        while MDApp.get_running_app().running:
+        while self.app.running:
             
             if self.state == ConnState.IDLE:
                 await self.event_start_scan.wait()

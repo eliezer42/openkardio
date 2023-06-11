@@ -11,11 +11,12 @@ from kivy.properties import DictProperty, StringProperty, ListProperty, ObjectPr
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.toast import toast
+import zlib
 
 import pickle
 
 class Plot(Widget):
-    sample_rate = NumericProperty(480)
+    sample_rate = NumericProperty(240)
     top_of_scale = NumericProperty(26400)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
@@ -118,9 +119,8 @@ class Plot(Widget):
             Logger.warning(f"EKG ID: {ekg_id}")
             app = MDApp.get_running_app()
             ekg = app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
-            Logger.debug(f"EKG LENGTH: {len(pickle.loads(ekg.signal))}")
             self.sample_rate = ekg.sample_rate
-            self.next_samples = pickle.loads(ekg.signal)
+            self.next_samples = pickle.loads(zlib.decompress(ekg.signal))
         except Exception as e:
             Logger.error(e)
 
@@ -128,16 +128,16 @@ class Plot(Widget):
         if len(self.ekg_samples):
             Logger.info(f"Total: {len(self.ekg_samples)}")
             return {
-                'bpm':self.bpm,
-                'sample_rate':self.sample_rate,
-                'gain':1,
-                'signal':pickle.dumps(list(self.ekg_samples))
+                'bpm': self.bpm,
+                'sample_rate': self.sample_rate,
+                'gain': 1,
+                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)))
             }
         return {
-                'bpm':self.bpm,
-                'sample_rate':self.sample_rate,
-                'gain':1,
-                'signal':pickle.dumps([item*16 for item in [959,958,957,955,954,954,953,954,953,951,949,951,950,952,951,947,
+                'bpm': self.bpm,
+                'sample_rate': self.sample_rate,
+                'gain': 1,
+                'signal': zlib.compress(pickle.dumps([item*16 for item in [959,958,957,955,954,954,953,954,953,951,949,951,950,952,951,947,
         947,948,950,949,949,947,945,946,947,945,945,943,942,942,943,944,
         944,942,942,942,943,943,943,944,944,944,947,947,948,943,943,945,
         945,947,951,950,954,957,958,960,961,958,957,960,962,966,966,963,
@@ -156,7 +156,7 @@ class Plot(Widget):
         961,957,955,959,958,959,958,955,957,957,958,957,957,954,956,957,
         958,957,959,958,960,960,961,960,961,962,963,964,965,963,962,965,
         965,964,966,967,967,965,966,967,968,968,967,965,967,967,966,968,
-        967,966,965,964]*4])
+        967,966,965,964]*4]))
             }
 
 class ExamList(MDBoxLayout):
