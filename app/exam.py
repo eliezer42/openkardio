@@ -1,7 +1,7 @@
 from kivy.logger import Logger
 from sqlalchemy.exc import SQLAlchemyError
 import utils.localdb as ldb
-import utils.remotedb as rdb
+import utils.ble as ble
 import numpy as np
 import utils.utils as utils
 from kivy.uix.widget import Widget
@@ -62,12 +62,12 @@ class Plot(Widget):
             pass
 
     def on_ekg_samples(self,*args):
-        self.width = max((len(self.ekg_samples)*self.subdiv_size/(self.sample_rate*self.SEC_PER_SUBDIV))+4*self.MARGINS, self.parent.width)
+        self.width = max((len(self.ekg_samples)*self.subdiv_size/(self.sample_rate*self.SEC_PER_SUBDIV))+8*self.MARGINS, self.parent.width)
 
     def on_next_samples(self, *args):
         if len(self.next_samples):
             Logger.info(f"New samples: {len(self.next_samples)}")
-            next_points = [point for sample in self.next_samples for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
+            next_points = [float(point) for sample in self.next_samples for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
                                                 np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
             self.line.points += next_points
             self.ekg_samples.extend(self.next_samples)
@@ -87,13 +87,13 @@ class Plot(Widget):
  
     def plot_grid(self, *args):
         with self.canvas.before:
-            Color(rgba=[1.0, 0.85, 0.85, 0.8])
+            Color(rgba=[1.0, 0.85, 0.85, 1])
             Rectangle(pos=self.pos, size=self.size)
         with self.canvas:
             # eff_height = round(self.height/amp_divisions)*10 + 1
             Color(rgba=[0.86,0.59,0.59,0.9])
             try:
-                for i in range(0, self.GRID_SUBDIVS*self.grid_x_divs + 1):
+                for i in range(0, self.GRID_SUBDIVS*(self.grid_x_divs + 1) + 1):
                     # vertical lines
                     pos = i*self.subdiv_size + self.grid_x
                     line_width = self.GRID_SUBDIV_LINE_WIDTH if (i % self.GRID_SUBDIVS > 0) else self.GRID_DIV_LINE_WIDTH
@@ -125,11 +125,12 @@ class Plot(Widget):
 
     def get_ekg(self):
         if len(self.ekg_samples):
+            Logger.info(f"Total: {len(self.ekg_samples)}")
             return {
                 'bpm':self.bpm,
                 'sample_rate':self.sample_rate,
                 'gain':1,
-                'signal':pickle.dumps(self.ekg_samples)
+                'signal':pickle.dumps(list(self.ekg_samples))
             }
         return {
                 'bpm':self.bpm,
@@ -231,6 +232,7 @@ class ExamMetadataForm(MDBoxLayout):
             self.ids.spo2.text = ""
             self.ids.weight_pd.text = ""
             self.ids.pressure.text = ""
+            self.ids.notes.text = ""
         except SQLAlchemyError as e:
             Logger.error(e)
             toast('Hubo un error al buscar el paciente.')
@@ -238,7 +240,8 @@ class ExamMetadataForm(MDBoxLayout):
     def save(self):
         self.data["spo2"] = float(self.ids.spo2.text) if self.ids.spo2.text != "" else 0.0
         self.data["weight_pd"] = float(self.ids.weight_pd.text) if self.ids.weight_pd.text != "" else 0.0
-        self.data["pressure"] = self.ids.pressure.text
+        self.data["pressure"] = self.ids.pressure.text if self.ids.weight_pd.text != "" else "--/--"
+        self.data["notes"] = self.ids.notes.text
         return self.data
     
 class ExamMetadataDetail(MDBoxLayout):
@@ -292,31 +295,38 @@ class ExamMetadataDetail(MDBoxLayout):
 
 class OKDevicePanel(MDBoxLayout):
     title = StringProperty("Title")
-    sample_rate = StringProperty("T. de muestreo: ")
-    leads = StringProperty("Derivaciones: ")
-    battery = StringProperty("Batería: ")
-    status = StringProperty("Desconectado")
+    sample_rate = StringProperty("-- sps")
+    leads = StringProperty("-  leads")
+    battery = StringProperty("--%")
     button_color = ColorProperty("blue")
     button_text = StringProperty("CONECTAR")
+    ble_state = ObjectProperty()
+    status = StringProperty("Desconectado")
+    app = MDApp.get_running_app()
 
-    def set_status(self):
-        if self.status == "Desconectado":
-            self.status = "Conectando..."
-            MDApp.get_running_app().ble.connect()
-        elif self.status == "Conectando...":
-            self.status = "Conectado"
-        elif self.status == "Conectado":
-            self.status = "Transmitiendo"
-        elif self.status == "Transmitiendo":
-            self.status = "Desconectado"
+    def set_state(self):
+        if self.app.ble_state == ble.ConnState.IDLE:
+            self.app.ble.transition(ble.ConnState.SCANNING)
+        elif self.app.ble_state == ble.ConnState.SCANNING:
+            pass
+        elif self.app.ble_state == ble.ConnState.CONNECTED:
+            self.app.ble.transition(ble.ConnState.RECEIVING)
+        elif self.app.ble_state == ble.ConnState.RECEIVING:
+            self.app.ble.transition(ble.ConnState.CONNECTED)
 
-    def set_button_status(self):
-        if self.status == "Desconectado" or self.status == "Conectando...": 
+    def on_ble_state(self, instance, value):
+        self.app.report_state()
+        if value == ble.ConnState.IDLE:
             self.button_text = "CONECTAR"
             self.button_color = "blue"
-        elif self.status == "Conectado":
+            self.status = "Desconectado"
+        elif value == ble.ConnState.SCANNING:
+            self.status = "Escaneando..."
+        elif value == ble.ConnState.CONNECTED:
             self.button_text = "EMPEZAR"
             self.button_color = "green"
-        elif self.status == "Transmitiendo":
+            self.status = "Conectado"
+        elif value == ble.ConnState.RECEIVING:
             self.button_text = "DETENER"
             self.button_color = "red"
+            self.status = "Transmitiendo"

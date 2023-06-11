@@ -112,13 +112,12 @@ MDNavigationLayout:
             name: "ekg_create_view"
             title: "Nuevo EKG"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
+            right_items: [['content-save', lambda _: app.save_exam()],['play',lambda _: app.ble_disconnect()]]
             on_enter:
                 app.root.ids.new_exam_metadata.populate(self.object_id)
                 app.root.ids.new_ekg.reset()
             ExamMetadataForm:
                 id: new_exam_metadata
-            OKDevicePanel:
-                id: ok_device_panel 
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
@@ -128,22 +127,9 @@ MDNavigationLayout:
                     size_hint_y: None
                     height: self.parent.height
                     width: self.parent.width
-            MDBoxLayout:
-                orientation: 'horizontal'
-                adaptive_height: True
-                size_hint_x: 1
-                padding: dp(8)
-                spacing: dp(8)
-                Widget:
-                MDFlatButton:
-                    text: "CANCELAR"
-                    pos_hint: {'center_y': 0.5}
-                MDRaisedButton:
-                    text: "GUARDAR"
-                    halign: 'right'
-                    pos_hint: {'center_y': 0.5}
-                    on_release:
-                        app.show_comment_dialog()
+            OKDevicePanel:
+                id: ok_device_panel
+                ble_state: app.ble_state
 
         ToolbarScreen:
             name: "patient_list_view"
@@ -185,7 +171,7 @@ MDNavigationLayout:
                 device_control.populate()
             MDLabel:
                 text: "ID de Usuario"
-                font_style: "H4"
+                font_style: "H6"
                 halign: "center"
             OKIdTextField:
                 id: uid
@@ -193,7 +179,7 @@ MDNavigationLayout:
             Widget:    
             MDLabel:
                 text: "Modo de uso de la Aplicación"
-                font_style: "H4"
+                font_style: "H6"
                 halign: "center"
             OKModeControl:
                 id: mode_control
@@ -201,7 +187,7 @@ MDNavigationLayout:
             Widget:
             MDLabel:
                 text: "Frecuencia de Muestreo (sps)"
-                font_style: "H4"
+                font_style: "H6"
                 halign: "center"
             OKDeviceControl:
                 id: device_control

@@ -16,6 +16,7 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDRaisedButton, MDFlatButton
 from kivymd.toast import toast
+from kivy.properties import ObjectProperty
 from navdrawer import ItemDrawer
 from okwidgets import OKHospitalSelectorItem, OKCommentWidget
 from sqlalchemy.exc import SQLAlchemyError
@@ -27,6 +28,7 @@ class OpenKardioApp(MDApp):
     theme_cls = ThemeManager()
     icons = {'M': 'face-man', 'F': 'face-woman'}
     dialog = None
+    ble_state = ObjectProperty(ble.ConnState.IDLE)
 
     def __init__(self):
         super().__init__()
@@ -88,20 +90,30 @@ class OpenKardioApp(MDApp):
         self.running = False
         self.session.close()
 
+    def report_state(self):
+        Logger.critical(f"State: ConnState={self.ble_state}")
+
+    def ble_disconnect(self):
+        self.ble.transition(ble.ConnState.IDLE)
+
     def frame_handler(self, sender, data):
-        """Simple notification handler which prints the data received."""
-        Logger.info("{0}: {1}".format(sender, data))
+        
+        Logger.info("SENDER: {0}: {1}".format(sender, data))
         if len(data) == 1:
-            self.ble.stop_receiving()
-            Logger.error(f"Frame: Error while receiving frame.")
+            self.ble.toggle_reception()
+            Logger.error(f"Frame: Error while receiving frame. Error code={data}")
             toast("Ocurrió un error desconocido")
         else:
             try:
                 samples = array.array('h', data).tolist()
                 self.root.ids.new_ekg.next_samples = samples
+                if len(self.root.ids.new_ekg.ekg_samples) >= 2400:  #240 sps * 10 segundos
+                        Logger.info("RIGHT BEFORE TOGGLE RECEPTION")
+                        self.ble.transition(ble.ConnState.CONNECTED)
             except Exception as e:
                 Logger.error(f"Frame: Error while decoding frame.")
                 Logger.error(f"Frame: {e}")
+                self.ble.toggle_reception()
 
     def go_back(self, previous):
         self.root.ids.screen_manager.current = previous
@@ -223,31 +235,14 @@ class OpenKardioApp(MDApp):
             Logger.error(e)
             toast("Error desconocido")
             self.session.rollback()
-
-    def show_comment_dialog(self):
-
-        self.dialog = MDDialog(
-            title="Comentario",
-            type="custom",
-            content_cls=OKCommentWidget(hint="Agregue un comentario"),
-            buttons=[
-                MDFlatButton(
-                    text="CANCELAR",
-                    on_release=lambda _: self.dialog.dismiss()
-                ),
-                MDRaisedButton(
-                    text="GUARDAR",
-                    on_release=lambda _: self.save_exam(self.dialog.content_cls.ids.text_field.text)
-                )
-            ]
-        )
-        self.dialog.open()
           
-    def save_exam(self, notes:str):
+    def save_exam(self):
         try:
             timestamp = datetime.now().replace(microsecond=0)
             metadata = self.root.ids.new_exam_metadata.save()
+            Logger.info("Metadata saved")
             ekg = self.root.ids.new_ekg.get_ekg()
+            Logger.info("Got Ekg signal")
             new_ekg = ldb.Ekg(**ekg)
             self.session.add(new_ekg)
             self.session.commit()
@@ -256,17 +251,16 @@ class OpenKardioApp(MDApp):
                 'ekg_id':new_ekg.id,
                 'created':timestamp,
                 'modified':timestamp,
-                'origin_id':self.store['user']['id'],
-                'notes':notes
+                'origin_id':self.store['user']['id']
             }
             exam_data.update(metadata)
             new_exam = ldb.Exam(**exam_data)
             self.session.add(new_exam)
             self.session.commit()
+            Logger.info("Commited Ekg")
             self.root.ids.screen_manager.get_screen("ekg_detail_view").object_id = new_exam.id
             self.root.ids.screen_manager.get_screen("ekg_detail_view").title = new_exam.name
             self.root.ids.screen_manager.current = "ekg_detail_view"
-            self.dialog.dismiss()
         except Exception as e:
             Logger.error(e)
             self.session.rollback()

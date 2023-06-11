@@ -112,8 +112,8 @@
 
 <ExamMetadataForm>:
     orientation: 'vertical'
-    padding: dp(8)
-    spacing: dp(8)
+    padding: dp(16)
+    spacing: dp(16)
     md_bg_color: "#f4dedc"
     adaptive_height: True
     MDLabel:
@@ -141,11 +141,15 @@
             icon_left: 'gauge'
             hint_text: "Presión"
             helper_text: "Ej.: 120/80"
+    MDTextField:
+        id: notes
+        icon_left: 'comment-plus'
+        hint_text: "Comentarios"
 
 <OKDevicePanel>:
     orientation: 'vertical'
-    padding: dp(8)
-    spacing: dp(8)
+    padding: dp(16)
+    spacing: dp(16)
     md_bg_color: "#f4dedc"
     adaptive_height: True
     title: "OpenKardio Device"
@@ -155,12 +159,12 @@
         font_style: "Subtitle2"
     MDBoxLayout:
         orientation: 'horizontal'
-        padding: dp(4)
-        spacing: dp(4)
+        padding: dp(8)
+        spacing: dp(8)
         md_bg_color: "#f4dedc"
         adaptive_height: True
         MDLabel:
-            text: "Status: " + root.status
+            text: root.status
             halign: 'left'
         MDRaisedButton:
             text: root.button_text
@@ -168,22 +172,42 @@
             pos_hint: {'center_y': 0.5}
             md_bg_color: root.button_color
             on_release:
-                root.set_status()
-                root.set_button_status()
+                root.set_state()
     MDBoxLayout:
-        orientation: 'horizontal'
-        spacing: dp(4)
-        md_bg_color: "#f4dedc"
+        orientation:"vertical"
         adaptive_height: True
-        OKIconItem:
-            id: sample_rate
-            icon: 'chart-timeline-variant'
-            text: '240 sps'
-        OKIconItem:
-            id: leads
-            icon: 'heart-flash'
-            text: '1 leads'
-        OKIconItem:
-            id: battery
-            icon: 'battery-bluetooth-variant'
-            text: '100%'
+        spacing: dp(8)
+        spacing: dp(24)
+        md_bg_color: "#f4dedc"
+        MDBoxLayout:
+            orientation: 'horizontal'
+            spacing: dp(8)
+            adaptive_height: True
+            OKIconItem:
+                id: sample_rate
+                icon: 'chart-timeline-variant'
+                text: root.sample_rate
+            OKIconItem:
+                id: leads
+                icon: 'heart-flash'
+                text: root.leads
+            OKIconItem:
+                id: battery
+                icon: 'battery-bluetooth-variant'
+                text: root.battery
+        MDBoxLayout:
+            orientation: 'horizontal'
+            spacing: dp(8)
+            adaptive_height: True
+            OKIconItem:
+                id: resolution
+                icon: 'stairs-box'
+                text: "16 bits"
+            OKIconItem:
+                id: fwv
+                icon: 'memory'
+                text: "v0.1"
+            OKIconItem:
+                id: duration 
+                icon: 'timer'
+                text: "10 secs"
