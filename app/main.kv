@@ -23,16 +23,7 @@ MDNavigationLayout:
                 halign: "center"
             MDRaisedButton:
                 text: "Create Random Object"
-            MDRaisedButton:
-                text: "Connect to OKDevice"
-                on_release: 
-                    app.running = True
-                    print('True')
-            MDRaisedButton:
-                text: "Disconnect from OKDevice"
-                on_release: 
-                    app.running = False
-                    print('False')
+
 
 
         ToolbarScreen:
@@ -127,9 +118,15 @@ MDNavigationLayout:
                     size_hint_y: None
                     height: self.parent.height
                     width: self.parent.width
+                    sample_rate: app.ble.sample_rate
             OKDevicePanel:
                 id: ok_device_panel
-                ble_state: app.ble_state
+                sample_rate: app.ble.sample_rate
+                leads: app.ble.lead_count
+                battery: app.ble.battery_level
+                resolution: app.ble.resolution
+                fw_version: app.ble.fw_version
+                ble_state: app.ble.state
 
         ToolbarScreen:
             name: "patient_list_view"

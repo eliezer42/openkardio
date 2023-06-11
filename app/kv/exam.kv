@@ -186,15 +186,15 @@
             OKIconItem:
                 id: sample_rate
                 icon: 'chart-timeline-variant'
-                text: root.sample_rate
+                text: "-- sps"
             OKIconItem:
                 id: leads
                 icon: 'heart-flash'
-                text: root.leads
+                text: "-- leads"
             OKIconItem:
                 id: battery
                 icon: 'battery-bluetooth-variant'
-                text: root.battery
+                text: "-- %"
         MDBoxLayout:
             orientation: 'horizontal'
             spacing: dp(8)
@@ -202,12 +202,12 @@
             OKIconItem:
                 id: resolution
                 icon: 'stairs-box'
-                text: "16 bits"
+                text: "-- bits"
             OKIconItem:
                 id: fwv
                 icon: 'memory'
-                text: "v0.1"
+                text: "--"
             OKIconItem:
                 id: duration 
                 icon: 'timer'
-                text: "10 secs"
+                text: str(app.store["device"]["duration"]) +" secs"

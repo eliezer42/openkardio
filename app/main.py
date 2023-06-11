@@ -28,15 +28,14 @@ class OpenKardioApp(MDApp):
     theme_cls = ThemeManager()
     icons = {'M': 'face-man', 'F': 'face-woman'}
     dialog = None
-    ble_state = ObjectProperty(ble.ConnState.IDLE)
 
     def __init__(self):
         super().__init__()
-        self.ble = ble.BleHandler(self.frame_handler)
+        self.ble = ble.BleHandler(frame_handler=self.frame_handler)
         self.running = True
 
     def build(self):
-        # logging.basicConfig(format='%(asctime)s %(message)s')
+        logging.basicConfig(format='%(asctime)s %(message)s')
         self.theme_cls.material_style = "M3"
         
         if __name__ == '__main__':
@@ -48,7 +47,7 @@ class OpenKardioApp(MDApp):
                 config_data = {
                     "app": {"mode": "C"},
                     "user": {"id": "CS1"},
-                    "device": {"sample_rate": 240}
+                    "device": {"sample_rate": 240, "duration": 10}
                 }
                 with open('okconfig.json', 'w') as config_file:
                     json.dump(config_data, config_file)
@@ -89,9 +88,6 @@ class OpenKardioApp(MDApp):
     def on_stop(self):
         self.running = False
         self.session.close()
-
-    def report_state(self):
-        Logger.critical(f"State: ConnState={self.ble_state}")
 
     def ble_disconnect(self):
         self.ble.transition(ble.ConnState.IDLE)

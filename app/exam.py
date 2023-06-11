@@ -93,7 +93,7 @@ class Plot(Widget):
             # eff_height = round(self.height/amp_divisions)*10 + 1
             Color(rgba=[0.86,0.59,0.59,0.9])
             try:
-                for i in range(0, self.GRID_SUBDIVS*(self.grid_x_divs + 1) + 1):
+                for i in range(0, self.GRID_SUBDIVS*self.grid_x_divs + 1):
                     # vertical lines
                     pos = i*self.subdiv_size + self.grid_x
                     line_width = self.GRID_SUBDIV_LINE_WIDTH if (i % self.GRID_SUBDIVS > 0) else self.GRID_DIV_LINE_WIDTH
@@ -119,6 +119,7 @@ class Plot(Widget):
             app = MDApp.get_running_app()
             ekg = app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
             Logger.debug(f"EKG LENGTH: {len(pickle.loads(ekg.signal))}")
+            self.sample_rate = ekg.sample_rate
             self.next_samples = pickle.loads(ekg.signal)
         except Exception as e:
             Logger.error(e)
@@ -280,7 +281,7 @@ class ExamMetadataDetail(MDBoxLayout):
             self.ids.pressure.text = self.exam.pressure
             self.ids.bpm.text = str(self.exam.ekg.bpm) + " bpm"
             self.ids.sample_rate.text = str(self.exam.ekg.sample_rate) + " sps"
-            self.ids.leads.text = "1 leads"
+            self.ids.leads.text = str(self.exam.ekg.leads) + " leads"
             self.ids.status.text = exam_status_text_mapper()
             self.ids.status.text_color = exam_satus_color_mapper()
             app.root.ids.notes.text = self.exam.notes
@@ -295,9 +296,11 @@ class ExamMetadataDetail(MDBoxLayout):
 
 class OKDevicePanel(MDBoxLayout):
     title = StringProperty("Title")
-    sample_rate = StringProperty("-- sps")
-    leads = StringProperty("-  leads")
-    battery = StringProperty("--%")
+    sample_rate = NumericProperty(0)
+    leads = NumericProperty(0)
+    battery = NumericProperty(0)
+    resolution = NumericProperty(0)
+    fw_version = StringProperty("")
     button_color = ColorProperty("blue")
     button_text = StringProperty("CONECTAR")
     ble_state = ObjectProperty()
@@ -305,17 +308,17 @@ class OKDevicePanel(MDBoxLayout):
     app = MDApp.get_running_app()
 
     def set_state(self):
-        if self.app.ble_state == ble.ConnState.IDLE:
+        if self.app.ble.state == ble.ConnState.IDLE:
             self.app.ble.transition(ble.ConnState.SCANNING)
-        elif self.app.ble_state == ble.ConnState.SCANNING:
+        elif self.app.ble.state == ble.ConnState.SCANNING:
             pass
-        elif self.app.ble_state == ble.ConnState.CONNECTED:
+        elif self.app.ble.state == ble.ConnState.CONNECTED:
             self.app.ble.transition(ble.ConnState.RECEIVING)
-        elif self.app.ble_state == ble.ConnState.RECEIVING:
+        elif self.app.ble.state == ble.ConnState.RECEIVING:
             self.app.ble.transition(ble.ConnState.CONNECTED)
 
     def on_ble_state(self, instance, value):
-        self.app.report_state()
+        Logger.info(f"DEVICE: {self.ble_state}")
         if value == ble.ConnState.IDLE:
             self.button_text = "CONECTAR"
             self.button_color = "blue"
@@ -330,3 +333,18 @@ class OKDevicePanel(MDBoxLayout):
             self.button_text = "DETENER"
             self.button_color = "red"
             self.status = "Transmitiendo"
+
+    def on_sample_rate(self, instance, value):
+        self.ids.sample_rate.text = str(value) + " sps"
+    
+    def on_leads(self, instance, value):
+        self.ids.leads.text = str(value) + " leads"
+
+    def on_battery(self, instance, value):
+        self.ids.battery.text = str(value) + " %"
+    
+    def on_resolution(self, instance, value):
+        self.ids.resolution.text = str(value) + " bits"
+
+    def on_fw_version(self, instance, value):
+        self.ids.fwv.text = "v" + value

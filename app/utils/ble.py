@@ -5,6 +5,8 @@ import struct
 from kivymd.toast import toast
 from kivymd.app import MDApp
 from enum import Enum
+from kivy.base import EventDispatcher
+from kivy.properties import ObjectProperty, StringProperty, NumericProperty
 
 class ConnState(Enum):
     IDLE = 1
@@ -12,13 +14,24 @@ class ConnState(Enum):
     CONNECTED = 3
     RECEIVING = 4
 
-class BleHandler:
-    def __init__(self, frame_handler) -> None:
-        self.frame_handler = frame_handler
-        self.device = None
-        self.cmd = b'\x00'
+class BleHandler(EventDispatcher):
+    state = ObjectProperty(ConnState.IDLE)
+    battery_level = NumericProperty()
+    sample_rate = NumericProperty()
+    lead_count = NumericProperty()
+    resolution = NumericProperty()
+    fw_version = StringProperty("")
+    conv_factor = NumericProperty(1.0)
+    frame_handler = ObjectProperty()
+    device = ObjectProperty()
+    cmd = ObjectProperty()
+    app = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        super(BleHandler, self).__init__(**kwargs)
         self.app = MDApp.get_running_app()
-    
+        self.cmd = b'\x00'
+
     def parse_device_info(self, value):
         assert len(value) == 16
         try:
@@ -28,33 +41,31 @@ class BleHandler:
             self.lead_count = value[4]
             self.resolution = value[5]
             self.fw_version = str(value[6]) + '.' + str(value[7])
-            self.conversion_factor = struct.unpack('d', value[8:])
+            self.conv_factor = struct.unpack('d', value[8:])[0]
             Logger.info(
-                f"OKDevice: FW=v{self.fw_version} LC={self.lead_count} BR={self.resolution} SR={self.sample_rate} SF={self.samples_per_frame} BL={self.battery_level} CV={self.conversion_factor}"
+                f"OKDevice: FW=v{self.fw_version} LC={self.lead_count} BR={self.resolution} SR={self.sample_rate} SF={self.samples_per_frame} BL={self.battery_level} CV={self.conv_factor}"
             )
-            self.app.root.ids.ok_device_panel.sample_rate = str(int(self.sample_rate)) + " sps"
-            self.app.root.ids.ok_device_panel.leads = str(self.lead_count) + " leads"
-            self.app.root.ids.ok_device_panel.battery = str(self.battery_level) + " %"
+
         except IndexError as e:
             Logger.error(str(e))
             Logger.error(f"LENGHT: {len(value)}")
 
 
     def transition(self, target:ConnState):
-        if self.app.ble_state == ConnState.IDLE:
+        if self.state == ConnState.IDLE:
             if target == ConnState.SCANNING:
                 self.event_start_scan.set()
-        elif self.app.ble_state == ConnState.SCANNING:
+        elif self.state == ConnState.SCANNING:
             if target == ConnState.CONNECTED:
-                self.app.ble_state = ConnState.CONNECTED
+                self.state = ConnState.CONNECTED
             elif target == ConnState.IDLE:
-                self.app.ble_state = ConnState.IDLE
-        elif self.app.ble_state == ConnState.CONNECTED:
+                self.state = ConnState.IDLE
+        elif self.state == ConnState.CONNECTED:
             if target == ConnState.IDLE:
                 self.event_disconnected.set()
             elif target == ConnState.RECEIVING:
                 self.event_toggle_receive.set()
-        elif self.app.ble_state == ConnState.RECEIVING:
+        elif self.state == ConnState.RECEIVING:
             if target == ConnState.IDLE:
                 self.event_disconnected.set()
             elif target == ConnState.CONNECTED:
@@ -73,17 +84,17 @@ class BleHandler:
         self.event_send_command = asyncio.Event()
 
         def disconnected_cb(client):
-            self.app.ble_state = ConnState.IDLE
+            self.state = ConnState.IDLE
             self.event_disconnected.set()
 
         while MDApp.get_running_app().running:
             
-            if self.app.ble_state == ConnState.IDLE:
+            if self.state == ConnState.IDLE:
                 await self.event_start_scan.wait()
-                self.app.ble_state = ConnState.SCANNING
+                self.state = ConnState.SCANNING
                 self.event_start_scan.clear()
 
-            elif self.app.ble_state == ConnState.SCANNING:
+            elif self.state == ConnState.SCANNING:
                 try:
                     Logger.info("Scanning")
                     scanned_devices = await bleak.BleakScanner.find_device_by_name("OKDevice", timeout=3)
@@ -109,12 +120,12 @@ class BleHandler:
                     toast(str(e))
                     self.transition(ConnState.IDLE)
 
-            elif self.app.ble_state == ConnState.CONNECTED or self.app.ble_state == ConnState.RECEIVING:
+            elif self.state == ConnState.CONNECTED or self.state == ConnState.RECEIVING:
                 try:
                     async with bleak.BleakClient(self.device, disconnected_callback=disconnected_cb) as client:
                         raw_device_info = await client.read_gatt_char("5e6c5002-05d8-463b-b21d-eed2204c2002")
                         self.parse_device_info(raw_device_info)
-                        while self.app.ble_state == ConnState.CONNECTED or self.app.ble_state == ConnState.RECEIVING:
+                        while self.state == ConnState.CONNECTED or self.state == ConnState.RECEIVING:
                             await asyncio.wait(
                                 {
                                     self.event_toggle_receive.wait(),
@@ -126,17 +137,17 @@ class BleHandler:
                             if self.event_toggle_receive.is_set():
                                 self.event_toggle_receive.clear()
                                 Logger.info("TOGGLE RECEIVE EVENT")
-                                if self.app.ble_state == ConnState.CONNECTED:
+                                if self.state == ConnState.CONNECTED:
                                     Logger.info("About to start the exam")
-                                    self.app.ble_state = ConnState.RECEIVING
+                                    self.state = ConnState.RECEIVING
                                     await client.start_notify("5e6c5001-05d8-463b-b21d-eed2204c2002", self.frame_handler)
                                     await asyncio.sleep(0.12)
                                     await client.write_gatt_char("5e6c5002-05d8-463b-b21d-eed2204c2002", b'\x00')
                                     Logger.info("Exam started")
                                     
-                                elif self.app.ble_state == ConnState.RECEIVING:
+                                elif self.state == ConnState.RECEIVING:
                                     Logger.info("About to finish the exam")
-                                    self.app.ble_state = ConnState.CONNECTED
+                                    self.state = ConnState.CONNECTED
                                     await client.stop_notify("5e6c5001-05d8-463b-b21d-eed2204c2002")
                                     await client.write_gatt_char("5e6c5002-05d8-463b-b21d-eed2204c2002", b'\xff')
                                     Logger.info("Exam finished")
@@ -148,7 +159,7 @@ class BleHandler:
                             elif self.event_disconnected.is_set():
                                 self.event_disconnected.clear()
                                 Logger.info("DISCONNECT EVENT")
-                                self.app.ble_state == ConnState.IDLE
+                                self.state == ConnState.IDLE
                                 break
 
                 except (bleak.exc.BleakError,AssertionError) as e:
