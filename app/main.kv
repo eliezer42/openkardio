@@ -107,6 +107,7 @@ MDNavigationLayout:
             on_enter:
                 app.root.ids.new_exam_metadata.populate(self.object_id)
                 app.root.ids.new_ekg.reset()
+                app.root.ids.ok_device_panel.duration = app.store['device']['duration']
             ExamMetadataForm:
                 id: new_exam_metadata
             ScrollView:
@@ -166,14 +167,14 @@ MDNavigationLayout:
                 uid.ids.text_field.text = app.store['user']['id']
                 mode_control.populate()
                 device_control.populate()
+                filter_control.populate()
             MDLabel:
                 text: "ID de Usuario"
                 font_style: "H6"
                 halign: "center"
             OKIdTextField:
                 id: uid
-                md_bg_color: .8,.8,.9,.9
-            Widget:    
+                md_bg_color: .8,.8,.9,.9 
             MDLabel:
                 text: "Modo de uso de la Aplicación"
                 font_style: "H6"
@@ -181,15 +182,20 @@ MDNavigationLayout:
             OKModeControl:
                 id: mode_control
                 md_bg_color: .8,.8,.9,.9
-            Widget:
             MDLabel:
-                text: "Frecuencia de Muestreo (sps)"
+                text: "Duración del examen (segundos)"
                 font_style: "H6"
                 halign: "center"
             OKDeviceControl:
                 id: device_control
                 md_bg_color: .8,.8,.9,.9
-            Widget:
+            MDLabel:
+                text: "Filtro digital (Dispositivo)"
+                font_style: "H6"
+                halign: "center"
+            OKFilterControl:
+                id: filter_control
+                md_bg_color: .8,.8,.9,.9
             Widget:
 
 

@@ -47,7 +47,8 @@ class OpenKardioApp(MDApp):
                 config_data = {
                     "app": {"mode": "C"},
                     "user": {"id": "CS1"},
-                    "device": {"sample_rate": 240, "duration": 10}
+                    "device": {"duration": 10},
+                    "filter":{"state":"on"}
                 }
                 with open('okconfig.json', 'w') as config_file:
                     json.dump(config_data, config_file)
@@ -103,7 +104,7 @@ class OpenKardioApp(MDApp):
             try:
                 samples = array.array('h', data).tolist()
                 self.root.ids.new_ekg.next_samples = samples
-                if len(self.root.ids.new_ekg.ekg_samples) >= 2400:  #240 sps * 10 segundos
+                if len(self.root.ids.new_ekg.ekg_samples) >= self.ble.sample_rate*self.store["device"]["duration"]:  #240 spcds * 10 segundos
                         Logger.info("RIGHT BEFORE TOGGLE RECEPTION")
                         self.ble.transition(ble.ConnState.CONNECTED)
             except Exception as e:

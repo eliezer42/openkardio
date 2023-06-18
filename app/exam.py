@@ -29,6 +29,7 @@ class Plot(Widget):
     MV_PER_SUBDIV = 0.1
     GRID_SUBDIV_LINE_WIDTH = 0.5
     GRID_DIV_LINE_WIDTH = 1.2
+    app = MDApp.get_running_app()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -117,8 +118,7 @@ class Plot(Widget):
         self.reset()
         try:
             Logger.warning(f"EKG ID: {ekg_id}")
-            app = MDApp.get_running_app()
-            ekg = app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
+            ekg = self.app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
             self.sample_rate = ekg.sample_rate
             self.next_samples = pickle.loads(zlib.decompress(ekg.signal))
         except Exception as e:
@@ -130,8 +130,8 @@ class Plot(Widget):
             return {
                 'bpm': self.bpm,
                 'sample_rate': self.sample_rate,
-                'gain': 1,
-                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)))
+                'gain': self.app.ble.conv_factor,
+                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)[:self.sample_rate*self.app.store["device"]["duration"]]))
             }
         return {
                 'bpm': self.bpm,
@@ -305,6 +305,7 @@ class OKDevicePanel(MDBoxLayout):
     button_text = StringProperty("CONECTAR")
     ble_state = ObjectProperty()
     status = StringProperty("Desconectado")
+    duration = NumericProperty(10)
     app = MDApp.get_running_app()
 
     def set_state(self):

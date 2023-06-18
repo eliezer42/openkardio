@@ -96,41 +96,67 @@
         pos_hint: {'x': .7, 'center_y': .5}
         on_active: root.on_checkbox_active(*args)
 
-<SampleRateCheck>:
-    group: 'sample_rate'
+<DurationCheck>:
+    group: 'duration'
     size_hint: None, None
     size: dp(48), dp(48)
 
 <OKDeviceControl>:
     MDLabel:
         font_style: "Subtitle2"
-        text: "240"
+        text: "10"
         pos_hint: {'x': 0.25,'center_y': .5}
 
-    SampleRateCheck:
-        id:240
-        value: '240'
+    DurationCheck:
+        id:10
+        value: '10'
         pos_hint: {'x': .3, 'center_y': .5}
         on_active: root.on_checkbox_active(*args)
 
     MDLabel:
         font_style: "Subtitle2"
-        text: "360"
+        text: "20"
         pos_hint: {'x': 0.45,'center_y': .5}
 
-    SampleRateCheck:
-        id:360
-        value: '360'
+    DurationCheck:
+        id:20
+        value: '20'
         pos_hint: {'x': .5, 'center_y': .5}
         on_active: root.on_checkbox_active(*args)
 
     MDLabel:
         font_style: "Subtitle2"
-        text: "480"
+        text: "30"
         pos_hint: {'x': 0.65,'center_y': .5}
 
-    SampleRateCheck:
-        id:480
-        value: '480'
+    DurationCheck:
+        id:30
+        value: '30'
         pos_hint: {'x': .70, 'center_y': .5}
+        on_active: root.on_checkbox_active(*args)
+
+<FilterCheck>:
+    group: 'filter'
+    size_hint: None, None
+    size: dp(48), dp(48)
+
+<OKFilterControl>:
+    MDLabel:
+        font_style: "Subtitle2"
+        text: "ON"
+        pos_hint: {'x': 0.3,'center_y': .5}
+    FilterCheck:
+        id:on
+        value: "on"
+        pos_hint: {'x': .4, 'center_y': .5}
+        on_active: root.on_checkbox_active(*args)
+
+    MDLabel:
+        font_style: "Subtitle2"
+        text: "OFF"
+        pos_hint: {'x': 0.6,'center_y': .5}
+    FilterCheck:
+        id:off
+        value: "off"
+        pos_hint: {'x': .7, 'center_y': .5}
         on_active: root.on_checkbox_active(*args)

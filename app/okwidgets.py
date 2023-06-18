@@ -51,12 +51,25 @@ class ModeCheck(MDCheckbox):
 class OKDeviceControl(MDRelativeLayout):
     
     def populate(self):
-        widget = self.ids[str(MDApp.get_running_app().store['device']['sample_rate'])]
+        widget = self.ids[str(MDApp.get_running_app().store['device']['duration'])]
         widget.active = True
 
     def on_checkbox_active(self, checkbox, value):
         if value:
-            MDApp.get_running_app().store['device'] = {'sample_rate':int(checkbox.value)}
+            MDApp.get_running_app().store['device'] = {'duration':int(checkbox.value)}
 
-class SampleRateCheck(MDCheckbox):
+class DurationCheck(MDCheckbox):
     value = StringProperty("")
+
+class OKFilterControl(MDRelativeLayout):
+    
+    def populate(self):
+        widget = self.ids[str(MDApp.get_running_app().store['filter']['state'])]
+        widget.active = True
+
+    def on_checkbox_active(self, checkbox, value):
+        if value:
+            MDApp.get_running_app().store['filter'] = {'state':checkbox.value}
+
+class FilterCheck(MDCheckbox):
+    value = StringProperty("on")

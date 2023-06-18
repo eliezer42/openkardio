@@ -17,7 +17,7 @@ class ConnState(Enum):
 class BleHandler(EventDispatcher):
     state = ObjectProperty(ConnState.IDLE)
     battery_level = NumericProperty()
-    sample_rate = NumericProperty()
+    sample_rate = NumericProperty(240)
     lead_count = NumericProperty()
     resolution = NumericProperty()
     fw_version = StringProperty("")
@@ -141,6 +141,8 @@ class BleHandler(EventDispatcher):
                                     Logger.info("About to start the exam")
                                     self.state = ConnState.RECEIVING
                                     await client.start_notify("5e6c5001-05d8-463b-b21d-eed2204c2002", self.frame_handler)
+                                    self.cmd = b'\x10' if self.app.store['filter']['state'] == 'off' else b'\x11'
+                                    await client.write_gatt_char("5e6c5002-05d8-463b-b21d-eed2204c2002", self.cmd)
                                     await asyncio.sleep(0.12)
                                     await client.write_gatt_char("5e6c5002-05d8-463b-b21d-eed2204c2002", b'\x00')
                                     Logger.info("Exam started")
