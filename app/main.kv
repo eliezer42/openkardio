@@ -33,10 +33,28 @@ MDNavigationLayout:
             right_items: [['plus-box', lambda _: app.go_to("select_patient_view")]]
             on_enter:
                 app.retrieve_own_cases()
-                app.root.ids.exam_list.populate()
+                app.root.ids.pending.badge_icon = app.root.ids.exam_pending_list.populate("",False,False)
+                app.root.ids.done.badge_icon = app.root.ids.exam_done_list.populate("",False,True)
 
-            ExamList:
-                id: exam_list
+            MDBottomNavigation:
+
+                MDBottomNavigationItem:
+                    id: pending
+                    name: 'screen 1'
+                    text: 'Pendiente'
+                    icon: 'inbox-full'
+
+                    ExamList:
+                        id: exam_pending_list
+                
+                MDBottomNavigationItem:
+                    id: done
+                    name: 'screen 2'
+                    text: 'Diagnosticado'
+                    icon: 'check-bold'
+
+                    ExamList:
+                        id: exam_done_list
 
 
         ToolbarScreen:

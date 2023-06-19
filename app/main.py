@@ -120,6 +120,9 @@ class OpenKardioApp(MDApp):
         self.root.ids.screen_manager.current = target
         self.root.ids.screen_manager.transition.direction = "left"
     
+    def mark_exam_as_opened(self, id):
+        self.session.query(ldb.Exam).filter(ldb.Exam.id == id).update({ldb.Exam.unopened: False})
+        self.session.commit()
 
     def populate_hospitals(self):
         try:
@@ -158,6 +161,7 @@ class OpenKardioApp(MDApp):
                         local_exam.status = case_dict['status']
                         local_exam.modified = timestamp
                         local_exam.diagnosed = timestamp
+                        local_exam.unopened = True
                         self.session.commit()
 
         except SQLAlchemyError as e:

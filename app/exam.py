@@ -160,7 +160,7 @@ class Plot(Widget):
             }
 
 class ExamList(MDBoxLayout):
-    def populate(self, text="", search=False):
+    def populate(self, text="", search=False, diagnosed=False):
         '''Builds a list of icons for the screen MDIcons.'''
 
         def add_item(instance):
@@ -171,6 +171,7 @@ class ExamList(MDBoxLayout):
                     "text": instance.name,
                     "secondary_text": instance.patient.first_name + " " + instance.patient.last_name,
                     "tertiary_text": f"Expediente no.: {instance.patient.record}",
+                    "avatar": "new-box" if instance.unopened else "",
                     "icon": "clipboard-pulse",
                     "screen": "ekg_detail_view",
                     "propagate": True
@@ -180,18 +181,24 @@ class ExamList(MDBoxLayout):
         self.ids.rv.data = []
         app = MDApp.get_running_app()
         field = ldb.Exam.destination_id if (app.store['app']['mode'] == 'H') else ldb.Exam.origin_id
+        status_list = ["DIAGNOSTICADO"] if diagnosed else ["GUARDADO","ENVIADO"]
         query = app.session.query(ldb.Exam)\
             .filter(field == app.store['user']['id'])\
-            .order_by(ldb.Exam.id)
+            .filter(ldb.Exam.status.in_(status_list))\
+            .order_by(-ldb.Exam.id)
+        avatar = ""
         for instance in query:
             if search:
-                if text in instance.patient.first_name or\
-                    text in instance.patient.last_name or\
-                    text in instance.patient.record:
+                if text.lower() in instance.patient.first_name.lower() or\
+                    text.lower() in instance.patient.last_name.lower() or\
+                    text.lower() in instance.patient.record.lower():
                     add_item(instance)
             else:
                 add_item(instance)
-
+            if instance.unopened:
+                avatar = "circle-small"
+        return avatar
+    
 class PatientSelector(MDBoxLayout):
     def populate(self, text="", search=False):
         '''Builds a list of icons for the screen MDIcons.'''
