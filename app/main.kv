@@ -1,4 +1,4 @@
-#:kivy 2.1.0
+#:kivy 2.2.0
 #:include kv/exam.kv
 #:include kv/navdrawer.kv
 #:include kv/okwidgets.kv
@@ -12,25 +12,66 @@ MDNavigationLayout:
 
         ToolbarScreen:
             name: "homescreen"
-            title: "OpenKardio"
+            title: "Inicio"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            right_items: [['refresh-circle',lambda _: app.retrieve_foreign_cases()]]
+            right_items: [['refresh-circle',lambda _: app.populate_hospitals()]]
+            on_enter: app.populate_start()
+
+            Image:
+                source: 'assets/imagotipo.png'
+                size: self.texture_size
+                fit_mode: "contain"
+                size_hint: 1, 0.15
             MDLabel:
-                id: out
+                id: info
                 halign: "center"
+                font_style: "Subtitle2"
+                size_hint: 1, 0.07
+                canvas.before:
+                    Color:
+                        rgba: .85,.83,.9,.9
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(16)]
+
+            SummaryCard:
+                id: start_exams
+                icon: "clipboard-text-outline"
+                text: "Exámenes"
+                label: "Realizados"
+                size_hint: 1, 0.35
+                
+            SummaryCard:
+                id: start_patients
+                icon: "account-group"
+                text: "Pacientes"
+                label: "Registrados"
+                size_hint: 1, 0.35
+                
             MDLabel:
-                id: bt_out
+                text: "Universidad Nacional de Ingeniería"
+                bold: True
                 halign: "center"
-            MDRaisedButton:
-                text: "Create Random Object"
+                font_style: "H5"
+                color: "grey"
+                size_hint: 1, 0.05
+
+            MDLabel:
+                text: "Nicaragua, 2023"
+                halign: "center"
+                font_style: "H6"
+                color: "grey"
+                size_hint: 1, 0.03
 
 
+            
 
         ToolbarScreen:
             name: "ekg_list_view"
             title: "Exámenes"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            right_items: [['plus-box', lambda _: app.go_to("select_patient_view")]]
+            right_items: [['plus-box', lambda _: app.go_to("select_patient_view")],['refresh-circle',lambda _: app.populate_hospitals()]]
             on_enter:
                 app.retrieve_own_cases()
                 app.root.ids.pending.badge_icon = app.root.ids.exam_pending_list.populate("",False,False)
@@ -60,7 +101,6 @@ MDNavigationLayout:
         ToolbarScreen:
             name: "ekg_detail_view"
             right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['refresh-circle', lambda _: app.retrieve_own_cases()]]
-            title: "View ekg"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
             on_enter:
                 app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
@@ -172,6 +212,7 @@ MDNavigationLayout:
             name: "patient_create_view"
             title: "Nuevo paciente"
             action_items: [['arrow-left', lambda *args : app.go_back("patient_list_view")]]
+            on_enter: app.root.ids.patient_form.clear_fields()
             ScrollView:
                 PatientForm:
                     id: patient_form

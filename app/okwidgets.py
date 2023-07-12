@@ -1,4 +1,4 @@
-from kivy.properties import BooleanProperty, StringProperty, NumericProperty, ObjectProperty
+from kivy.properties import BooleanProperty, StringProperty, NumericProperty, ColorProperty
 from kivymd.uix.list import ThreeLineIconListItem, TwoLineIconListItem, ThreeLineAvatarIconListItem
 from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -7,6 +7,7 @@ from kivymd.uix.textfield import MDTextField
 from kivy.animation import Animation
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.app import MDApp
+from kivymd.uix.card import MDCard
 
 class OKIconItem(MDBoxLayout):
     icon = StringProperty("alert")
@@ -74,3 +75,27 @@ class OKFilterControl(MDRelativeLayout):
 
 class FilterCheck(MDCheckbox):
     value = StringProperty("on")
+
+class OKPercentBar(MDBoxLayout):
+    text = StringProperty()
+    percent = NumericProperty()
+    color = ColorProperty('red')
+
+class SummaryCard(MDCard):
+    icon = StringProperty("alert")
+    text = StringProperty("Pacientes")
+    count = NumericProperty(0)
+    label = StringProperty("")
+
+    def add_widget(self, *args, **kwargs):
+        if 'container' in self.ids:
+            return self.ids.container.add_widget(*args, **kwargs)
+        else:
+            return super().add_widget(*args, **kwargs)
+    
+    def add_bar(self, text, color, percent):
+        self.add_widget(OKPercentBar(text=text, color=color, percent=percent))
+    
+    def clear(self):
+        if 'container' in self.ids:
+            self.ids.container.clear_widgets()

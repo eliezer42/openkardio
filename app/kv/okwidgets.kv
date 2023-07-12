@@ -1,4 +1,4 @@
-#:kivy 2.1.0
+#:kivy 2.2.0
 #:import * okwidgets
 
 <OKIconItem>:
@@ -163,3 +163,93 @@
         value: "off"
         pos_hint: {'x': .7, 'center_y': .5}
         on_active: root.on_checkbox_active(*args)
+
+<OKPercentBar>:
+    orientation:"horizontal"
+    spacing: "8dp"
+    MDLabel:
+        text: root.text
+        color: root.color
+        font_style: "Button"
+        size_hint_x: 0.4
+        halign: "right"
+    Widget:
+        size_hint_x: 0.45
+        canvas.before:
+            Color:
+                rgba: root.color
+            Rectangle:
+                pos: self.pos
+                size: (self.width*root.percent), (self.top - self.y)
+    MDLabel:
+        size_hint_x: 0.15
+        text: str(round(root.percent*100)) + '%'
+        color: root.color
+        font_style: "Caption"
+        halign: 'left'
+        bold: True
+
+
+<SummaryCard>:
+    padding: dp(16)
+    style: "filled"
+    md_bg_color: "#f6eeee"
+    shadow_offset: (0, -1)
+    line_color: (0.2, 0.2, 0.2, 0.8)
+
+    MDRelativeLayout:
+
+        MDIcon:
+            icon: root.icon
+            pos_hint: {"top": 1, "x": 0}
+            font_size: "36sp"
+            color: "#3f3f3f"
+
+        MDLabel:
+            text: root.text
+            adaptive_size: True
+            pos_hint: {"top": 1, "center_x": 0.5}
+            bold: True
+            font_size: "32sp"
+            color: "#3f3f3f"
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            pos: 0,0
+            size_hint: 1,0.8
+
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "8dp"
+                size_hint_x: 0.35
+
+                Widget:
+                    size_hint_y: 0.2
+
+                MDLabel:
+                    text: str(root.count)
+                    font_size: "80sp"
+                    halign: "center"
+                    bold: True
+                    adaptive_height: True
+                
+                MDLabel:
+                    text: root.label
+                    font_size: "20sp"
+                    halign: "center"
+                    size_hint_y:0.2
+                
+                Widget:
+                    size_hint_y: 0.2
+
+            MDBoxLayout:
+                id: container
+                orientation: 'vertical'
+                size_hint_x: 0.65
+                spacing: "12dp"
+                padding: [dp(4),dp(12),dp(4),dp(12)]
+                md_bg_color: 0.9,0.9,0.9,0.5
+
+        Widget:
+            pos_hint: {"x":0, "y":0}
+            size_hint: 1, 0.2

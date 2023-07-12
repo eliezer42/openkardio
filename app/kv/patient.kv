@@ -1,5 +1,6 @@
-#:kivy 2.1.0
+#:kivy 2.2.0
 #:import * patient
+#:import * okwidgets
 
 <PatientList>:
     orientation: 'vertical'
@@ -29,17 +30,16 @@
             
 <PatientDetail>:
     orientation: 'vertical'
-    adaptive_height: True
-    padding: "8dp"
-    spacing: "8dp"
-    MDBoxLayout:
+    padding: "12dp"
+    spacing: "16dp"
+    MDCard:
         orientation: "vertical"
-        padding: "8dp"
-        spacing: "8dp"
-        size_hint: 0.9, 0.45
-        pos_hint: {"center_x": .5, "center_y": .5}
-        md_bg_color: 0.2, 0.1, 0.5, 0.8
-        border_radius: "8dp"
+        padding: dp(12)
+        spacing: dp(16)
+        style: "filled"
+        md_bg_color: "#f6eeee"
+        shadow_offset: (0, -1)
+        line_color: (0.2, 0.2, 0.2, 0.8)
         MDLabel:
             text: "Información General"
             theme_text_color: "Secondary"
@@ -49,17 +49,17 @@
         MDBoxLayout:
             orientation: "horizontal"
             adaptive_height: True
-            padding: "8dp"
-            spacing: "8dp"
+            padding: dp(8)
+            spacing: dp(12)
             MDIcon:
                 halign: "center"
                 icon: root.sex_icon
                 size_hint: 0.2, None
-                height: "64dp"
+                height: "36dp"
             MDLabel:
                 id: name
                 size_hint_y: 1
-                font_style: "Subtitle2"
+                font_style: "Subtitle1"
                 valign: "center"
                 halign: "left"
         MDSeparator:
@@ -84,7 +84,9 @@
             id: contact
             size_hint_y: None
             height: self.texture_size[1]
-    Widget:
+        MDSeparator:
+            height: "2dp"
+        Widget:
 
 <FormField>:
     orientation: 'horizontal'

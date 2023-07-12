@@ -20,6 +20,12 @@ from kivy.properties import ObjectProperty
 from navdrawer import ItemDrawer
 from okwidgets import OKHospitalSelectorItem, OKCommentWidget
 from sqlalchemy.exc import SQLAlchemyError
+from kivy.core.window import Window
+from kivy.utils import platform
+
+if platform != 'android':
+    Window.size = (800, 800)
+    Window.minimum_width, Window.minimum_height = Window.size
 
 logging.Logger.manager.root = Logger
 
@@ -84,7 +90,7 @@ class OpenKardioApp(MDApp):
             self.root.ids.content_drawer.ids.md_list.add_widget(
                 ItemDrawer(icon=item_name, text=drawer_items[item_name]["text"], screen=drawer_items[item_name]["target"])
             )
-        self.populate_hospitals()
+        self.populate_start()
 
     def on_stop(self):
         self.running = False
@@ -448,6 +454,42 @@ class OpenKardioApp(MDApp):
             ],
         )
         self.dialog.open()
+    
+    def populate_start(self):
+        unopened_exams = self.session.query(ldb.Exam).filter(ldb.Exam.unopened == True).count()
+        info_msg = f"Usted está registrado como {self.store['user']['id']}. Tiene {unopened_exams} exámen(es) sin abrir."
+        self.root.ids["info"].text = info_msg
+        exam_count = self.session.query(ldb.Exam).count()
+        patient_count = self.session.query(ldb.Patient).count()
+        self.root.ids["start_exams"].count = exam_count
+        self.root.ids["start_patients"].count = patient_count
+        self.root.ids["start_exams"].clear()
+        if self.store['app']['mode'] == 'C':
+            self.root.ids["start_exams"]\
+                .add_bar("GUARDADO","#d35f5f",self.session.query(ldb.Exam)\
+                .filter(ldb.Exam.status == "GUARDADO")\
+                .count()/max(exam_count,1))
+            self.root.ids["start_exams"]\
+                .add_bar("ENVIADO","#5f99d3",self.session.query(ldb.Exam)\
+                .filter(ldb.Exam.status == "ENVIADO")\
+                .count()/max(exam_count,1))
+            self.root.ids["start_exams"]\
+                .add_bar("EVALUADO","#5fd399",self.session.query(ldb.Exam)\
+                .filter(ldb.Exam.status == "DIAGNOSTICADO")\
+                .count()/max(exam_count,1))
+        else:
+            self.root.ids["start_exams"]\
+                .add_bar("RECIBIDO","#5f99d3",self.session.query(ldb.Exam)\
+                .filter(ldb.Exam.status == "ENVIADO")\
+                .count()/max(exam_count,1))
+            self.root.ids["start_exams"]\
+                .add_bar("EVALUADO","#5fd399",self.session.query(ldb.Exam)\
+                .filter(ldb.Exam.status == "DIAGNOSTICADO")\
+                .count()/max(exam_count,1))
+
+        self.root.ids["start_patients"].clear()
+        self.root.ids["start_patients"].add_bar("F","#d35f5f",self.session.query(ldb.Patient).filter(ldb.Patient.sex == "F").count()/max(patient_count,1))
+        self.root.ids["start_patients"].add_bar("M","#5f99d3",self.session.query(ldb.Patient).filter(ldb.Patient.sex == "M").count()/max(patient_count,1))
 
 async def main(app):
     await asyncio.gather(app.async_run("asyncio"), app.ble.connection_handler())
