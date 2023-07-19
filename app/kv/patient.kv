@@ -206,10 +206,11 @@
         spacing: "8dp"
         Widget:
         MDFlatButton:
+            text: "CANCELAR"
+            on_release: app.go_back("patient_list_view")
+        MDRaisedButton:
             text: "GUARDAR"
             on_release: 
                 app.root.ids.screen_manager.get_screen("patient_detail_view").object_id = root.save_form()
                 app.root.ids.screen_manager.current = "patient_detail_view"
-        MDRaisedButton:
-            text: "CANCELAR"
-            on_release: app.go_back("patient_list_view")
+        

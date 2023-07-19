@@ -16,12 +16,12 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDRaisedButton, MDFlatButton
 from kivymd.toast import toast
-from kivy.properties import ObjectProperty
 from navdrawer import ItemDrawer
 from okwidgets import OKHospitalSelectorItem, OKCommentWidget
 from sqlalchemy.exc import SQLAlchemyError
 from kivy.core.window import Window
 from kivy.utils import platform
+import time
 
 if platform != 'android':
     Window.size = (800, 800)
@@ -125,7 +125,7 @@ class OpenKardioApp(MDApp):
     def go_to(self, target):
         self.root.ids.screen_manager.current = target
         self.root.ids.screen_manager.transition.direction = "left"
-    
+
     def mark_exam_as_opened(self, id):
         self.session.query(ldb.Exam).filter(ldb.Exam.id == id).update({ldb.Exam.unopened: False})
         self.session.commit()
@@ -145,13 +145,15 @@ class OpenKardioApp(MDApp):
         except SQLAlchemyError as e:
             Logger.error(e)
             toast("Error en la base de datos local.")
+        except rdb.RDBException as e:
+            Logger.error(f"RDB:{str(e)}")
+            toast(str(e))
         except Exception as e:
             Logger.error(f"Hospitals:{str(e)}")
-            toast(e)
+            toast("Error desconocido.")
 
     def retrieve_own_cases(self):
         try:
-
             exam_query = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
             exam_remote_ids = [exam.remote_id for exam in exam_query]
             remote_cases = rdb.retrieve_objects("Cases","origin_id",self.store["user"]["id"])
@@ -173,10 +175,16 @@ class OpenKardioApp(MDApp):
         except SQLAlchemyError as e:
             Logger.error(e)
             toast("Error en la base de datos local.")
-            self.session.rollback()
+
+        except rdb.RDBException as e:
+            Logger.error(e)
+            toast(str(e))
+
         except Exception as e:
             Logger.error(e)
             toast("Error desconocido")
+            
+        finally:
             self.session.rollback()
     
     def retrieve_foreign_cases(self):
@@ -237,10 +245,16 @@ class OpenKardioApp(MDApp):
         except SQLAlchemyError as e:
             Logger.error(e)
             toast("Error en la base de datos local.")
-            self.session.rollback()
+
+        except rdb.RDBException as e:
+            Logger.error(e)
+            toast(str(e))
+
         except Exception as e:
             Logger.error(e)
             toast("Error desconocido")
+            
+        finally:
             self.session.rollback()
           
     def save_exam(self):
@@ -291,10 +305,21 @@ class OpenKardioApp(MDApp):
                     setattr(exam, key, value)
                 self.session.commit()
                 self.root.ids.exam_metadata.populate(exam_id)
+
             except SQLAlchemyError as e:
                 Logger.error(e)
-                self.session.rollback()
+                toast("Error en la base de datos.")
+
+            except rdb.RDBException as e:
+                Logger.error(e)
+                toast(str(e))
+            
+            except Exception as e:
+                toast("Error desconocido")
+                Logger.error(f"Exam:{e}")
+
             finally:
+                self.session.rollback()
                 self.dialog.dismiss()
 
         def send_to_firebase(global_id:str):
@@ -336,12 +361,20 @@ class OpenKardioApp(MDApp):
                 self.session.commit()
                 Logger.info(f"Remote ID: {remote_exam_id}")
                 return remote_exam_id
-            except SQLAlchemyError as e1:
-                self.session.rollback()
-                Logger.error(f"SQL Error: {e1}")
-            except Exception as e:
-                self.session.rollback()
+
+            except SQLAlchemyError as e:
+                Logger.error(f"SQL Error: {e}")
+
+            except rdb.RDBException as e:
                 Logger.error(e)
+                toast(str(e))
+
+            except Exception as e:
+                Logger.error(e)
+                toast("Error desconocido.")
+            
+            finally:
+                self.session.rollback()
 
         def send_callback(global_id):
             remote_id = send_to_firebase(global_id)
@@ -354,8 +387,6 @@ class OpenKardioApp(MDApp):
                 self.root.ids.exam_metadata.populate(exam_id)
                 Logger.info("FINISHED CALLBACK")
                 return
-            Logger.warning("ALGO SALIO MAL")
-            toast("Algo salió mal.")
             self.dialog.dismiss()
             
 
