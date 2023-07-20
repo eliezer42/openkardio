@@ -91,3 +91,155 @@ def ekg_yield():
         for  i in y:
             yield i
 
+def custom_lfilter(b, a, x):
+    if len(a) == 1:
+        # For FIR filters (a = [1.0]), use simple convolution
+        return np.convolve(b, x, mode='full')[:len(x)]
+    else:
+        if len(b) < len(a):
+            # Pad 'b' with zeros to have the same length as 'a'
+            b = np.pad(b, (0, len(a) - len(b)), 'constant')
+        elif len(a) < len(b):
+            # Pad 'a' with zeros to have the same length as 'b'
+            a = np.pad(a, (0, len(b) - len(a)), 'constant')
+
+        # Normalize 'a' coefficients to have 'a[0]' equal to 1
+        a /= a[0]
+
+        # Initialize output array
+        y = np.zeros(len(x))
+
+        # Apply direct form filtering
+        for i in range(len(x)):
+            y[i] = np.sum(b * x[i::-1]) - np.sum(a[1:] * y[i::-1])
+
+        return y
+
+def christov_detector(unfiltered_ecg, fs):
+    """
+    Ivaylo I. Christov, 
+    Real time electrocardiogram QRS detection using combined 
+    adaptive threshold, BioMedical Engineering OnLine 2004, 
+    vol. 3:28, 2004.
+    """
+    total_taps = 0
+
+    b = np.ones(int(0.02*fs))
+    b = b/int(0.02*fs)
+    total_taps += len(b)
+    a = [1]
+
+    MA1 = custom_lfilter(b, a, unfiltered_ecg)
+
+    b = np.ones(int(0.028*fs))
+    b = b/int(0.028*fs)
+    total_taps += len(b)
+    a = [1]
+
+    MA2 = custom_lfilter(b, a, MA1)
+
+    Y = []
+    for i in range(1, len(MA2)-1):
+        
+        diff = abs(MA2[i+1]-MA2[i-1])
+
+        Y.append(diff)
+
+    b = np.ones(int(0.040*fs))
+    b = b/int(0.040*fs)
+    total_taps += len(b)
+    a = [1]
+
+    MA3 = custom_lfilter(b, a, Y)
+
+    MA3[0:total_taps] = 0
+
+    ms50 = int(0.05*fs)
+    ms200 = int(0.2*fs)
+    ms1200 = int(1.2*fs)
+    ms350 = int(0.35*fs)
+
+    M = 0
+    newM5 = 0
+    M_list = []
+    MM = []
+    M_slope = np.linspace(1.0, 0.6, ms1200-ms200)
+    F = 0
+    F_list = []
+    R = 0
+    RR = []
+    Rm = 0
+    R_list = []
+
+    MFR = 0
+    MFR_list = []
+
+    QRS = []
+
+    for i in range(len(MA3)):
+
+        # M
+        if i < 5*fs:
+            M = 0.6*np.max(MA3[:i+1])
+            MM.append(M)
+            if len(MM)>5:
+                MM.pop(0)
+
+        elif QRS and i < QRS[-1]+ms200:
+            newM5 = 0.6*np.max(MA3[QRS[-1]:i])
+            if newM5>1.5*MM[-1]:
+                newM5 = 1.1*MM[-1]
+
+        elif QRS and i == QRS[-1]+ms200:
+            if newM5==0:
+                newM5 = MM[-1]
+            MM.append(newM5)
+            if len(MM)>5:
+                MM.pop(0)    
+            M = np.mean(MM)    
+        
+        elif QRS and i > QRS[-1]+ms200 and i < QRS[-1]+ms1200:
+
+            M = np.mean(MM)*M_slope[i-(QRS[-1]+ms200)]
+
+        elif QRS and i > QRS[-1]+ms1200:
+            M = 0.6*np.mean(MM)
+
+        # F
+        if i > ms350:
+            F_section = MA3[i-ms350:i]
+            max_latest = np.max(F_section[-ms50:])
+            max_earliest = np.max(F_section[:ms50])
+            F = F + ((max_latest-max_earliest)/150.0)
+
+        # R
+        if QRS and i < QRS[-1]+int((2.0/3.0*Rm)):
+
+            R = 0
+
+        elif QRS and i > QRS[-1]+int((2.0/3.0*Rm)) and i < QRS[-1]+Rm:
+
+            dec = (M-np.mean(MM))/1.4
+            R = 0 + dec
+
+
+        MFR = M+F+R
+        M_list.append(M)
+        F_list.append(F)
+        R_list.append(R)
+        MFR_list.append(MFR)
+
+        if not QRS and MA3[i]>MFR:
+            QRS.append(i)
+        
+        elif QRS and i > QRS[-1]+ms200 and MA3[i]>MFR:
+            QRS.append(i)
+            if len(QRS)>2:
+                RR.append(QRS[-1]-QRS[-2])
+                if len(RR)>5:
+                    RR.pop(0)
+                Rm = int(np.mean(RR))
+
+    QRS.pop(0)
+    
+    return QRS
