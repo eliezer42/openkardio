@@ -21,7 +21,7 @@ from okwidgets import OKHospitalSelectorItem, OKCommentWidget
 from sqlalchemy.exc import SQLAlchemyError
 from kivy.core.window import Window
 from kivy.utils import platform
-import time
+from os.path import join
 
 if platform != 'android':
     Window.size = (800, 800)
@@ -45,8 +45,10 @@ class OpenKardioApp(MDApp):
         self.theme_cls.material_style = "M3"
         
         if __name__ == '__main__':
-            try:
-                self.store = JsonStore("okconfig.json")
+            data_dir = getattr(self, 'user_data_dir')
+            Logger.info(f"DATADIR: {data_dir}")
+            try:    
+                self.store = JsonStore(join(data_dir,'config.json'))
                 self.user_id = self.store["user"]["id"]
             except KeyError as e:
                 Logger.critical(e)
@@ -54,19 +56,19 @@ class OpenKardioApp(MDApp):
                     "app": {"mode": "C"},
                     "user": {"id": "CS1"},
                     "device": {"duration": 10},
-                    "filter":{"state":"on"}
+                    "filter": {"state":"on"}
                 }
-                with open('okconfig.json', 'w') as config_file:
+                with open(join(data_dir,'config.json'), 'w') as config_file:
                     json.dump(config_data, config_file)
             finally:
-                self.store = JsonStore("okconfig.json")
+                self.store = JsonStore(join(data_dir,'config.json'))
                 self.user_id = self.store["user"]["id"]
                 
 
             return Builder.load_file("main.kv")
         
     def on_start(self):
-        self.session = ldb.Session()
+        self.session = ldb.session_init(getattr(self, 'user_data_dir'))
         if self.session.query(ldb.Patient).first() is None:
                 patient1 = ldb.Patient(first_name="Pedro", last_name="Perez", sex="M", birth_date=date(1998, 3, 28), record="123-456-789", identification="123")
                 patient2 = ldb.Patient(first_name="Maria", last_name="Lopez", sex="F", birth_date=date(1970, 12, 13), record="123-456-789", identification="321")

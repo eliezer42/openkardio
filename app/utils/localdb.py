@@ -4,14 +4,9 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, LargeBinary
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy_utils import create_database, database_exists
 from datetime import date, datetime
+from os.path import join
 
-SQLITE = f'sqlite:///ok.db?check_same_thread=False'
-if not database_exists(SQLITE):
-    create_database(SQLITE)
-
-engine = create_engine(SQLITE, echo=False)
 Base = declarative_base()
-Session = sessionmaker(bind=engine)
 
 class Hospital(Base):
     __tablename__ = 'hospitals'
@@ -87,4 +82,13 @@ class Exam(Base):
     destination = relationship('Hospital', back_populates='exams')
 
 
-Base.metadata.create_all(engine)
+def session_init(data_dir):
+    SQLITE = f'sqlite:///{join(data_dir,"ok.db")}?check_same_thread=False'
+    if not database_exists(SQLITE):
+        create_database(SQLITE)
+
+    engine = create_engine(SQLITE, echo=False)
+    Session = sessionmaker(bind=engine)
+    Base.metadata.create_all(engine)
+
+    return Session()

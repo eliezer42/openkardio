@@ -17,7 +17,7 @@ class ConnState(Enum):
 class BleHandler(EventDispatcher):
     state = ObjectProperty(ConnState.IDLE)
     battery_level = NumericProperty()
-    sample_rate = NumericProperty(240)
+    sample_rate = NumericProperty(500)
     lead_count = NumericProperty()
     resolution = NumericProperty()
     fw_version = StringProperty("")

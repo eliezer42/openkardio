@@ -13,16 +13,17 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.toast import toast
 import zlib
 import pickle
+from kivy.metrics import dp
 
 class Plot(Widget):
-    sample_rate = NumericProperty(240)
+    sample_rate = NumericProperty(500)
     top_of_scale = NumericProperty(26400)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
     next_samples = ListProperty([])
     bpm = NumericProperty(0)
     sample_gen = utils.Signal(2.5, sample_rate, 100, 150, 'square')
-    MARGINS = 16
+    MARGINS = dp(16)
     GRID_SUBDIVS = 5
     SEC_PER_SUBDIV = 0.04
     MV_PER_SUBDIV = 0.1
@@ -36,7 +37,7 @@ class Plot(Widget):
         self.time_generator = utils.time_gen(self.sample_rate)
         with self.canvas.after:
             Color(0, 0, 0, 1)
-            self.line = Line(points=[], width = 1.5)
+            self.line = Line(points=[], width = 1.1)
 
     def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)
@@ -50,7 +51,8 @@ class Plot(Widget):
             self.div_size = self.subdiv_size*self.GRID_SUBDIVS
 
             self.grid_height = self.div_size*self.grid_y_divs
-            self.grid_y = self.y + (self.height - self.grid_height)/2
+            self.grid_y_offset = (self.height - self.grid_height)/2
+            self.grid_y = self.y + self.grid_y_offset
             self.grid_top = self.grid_y + self.grid_height
 
             self.grid_x_divs = int((self.width - self.MARGINS)//(self.div_size))
@@ -69,7 +71,7 @@ class Plot(Widget):
         if len(self.next_samples):
             Logger.info(f"New samples: {len(self.next_samples)}")
             next_points = [float(point) for sample in self.next_samples for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
-                                                np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
+                                                self.grid_y_offset + np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
             self.line.points += next_points
             self.ekg_samples.extend(self.next_samples)
             self.next_samples = []

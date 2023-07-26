@@ -71,9 +71,8 @@ MDNavigationLayout:
             name: "ekg_list_view"
             title: "Exámenes"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            right_items: [['plus-box', lambda _: app.go_to("select_patient_view")],['refresh-circle',lambda _: app.populate_hospitals()]]
+            right_items: [['plus-box', lambda _: app.go_to("select_patient_view")],['refresh-circle',lambda _: app.retrieve_own_cases()]]
             on_enter:
-                app.retrieve_own_cases()
                 app.root.ids.pending.badge_icon = app.root.ids.exam_pending_list.populate("",False,False)
                 app.root.ids.done.badge_icon = app.root.ids.exam_done_list.populate("",False,True)
 
