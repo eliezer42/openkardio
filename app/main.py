@@ -112,7 +112,7 @@ class OpenKardioApp(MDApp):
             try:
                 samples = array.array('h', data).tolist()
                 self.root.ids.new_ekg.next_samples = samples
-                if len(self.root.ids.new_ekg.ekg_samples) >= self.ble.sample_rate*self.store["device"]["duration"]:  #240 spcds * 10 segundos
+                if len(self.root.ids.new_ekg.ekg_samples) >= self.ble.sample_rate*9.6:
                         Logger.info("RIGHT BEFORE TOGGLE RECEPTION")
                         self.ble.transition(ble.ConnState.CONNECTED)
             except Exception as e:

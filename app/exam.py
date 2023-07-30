@@ -16,7 +16,7 @@ import pickle
 from kivy.metrics import dp
 
 class Plot(Widget):
-    sample_rate = NumericProperty(500)
+    sample_rate = NumericProperty(480)
     top_of_scale = NumericProperty(26400)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
@@ -37,7 +37,7 @@ class Plot(Widget):
         self.time_generator = utils.time_gen(self.sample_rate)
         with self.canvas.after:
             Color(0, 0, 0, 1)
-            self.line = Line(points=[], width = 1.1)
+            self.line = Line(points=[], width = 1.2)
 
     def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)
@@ -132,7 +132,7 @@ class Plot(Widget):
                 'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array(self.ekg_samples),self.sample_rate))/self.sample_rate)),
                 'sample_rate': self.sample_rate,
                 'gain': self.app.ble.conv_factor,
-                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)[:self.sample_rate*self.app.store["device"]["duration"]]))
+                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)[:self.sample_rate*9.6]))
             }
         return {
                 'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array([item*16 for item in [959,958,957,955,954,954,953,954,953,951,949,951,950,952,951,947,
