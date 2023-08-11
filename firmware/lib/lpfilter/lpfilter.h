@@ -1,19 +1,3 @@
-/******************************* SOURCE LICENSE *********************************
-Copyright (c) 2021 MicroModeler.
-
-A non-exclusive, nontransferable, perpetual, royalty-free license is granted to the Licensee to 
-use the following Information for academic, non-profit, or government-sponsored research purposes.
-Use of the following Information under this License is restricted to NON-COMMERCIAL PURPOSES ONLY.
-Commercial use of the following Information requires a separately executed written license agreement.
-
-This Information is distributed WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-******************************* END OF LICENSE *********************************/
-
-// A commercial license for MicroModeler DSP can be obtained at https://www.micromodeler.com/launch.jsp
-
-// Begin header file, lpfilter.h
 
 #ifndef LPFILTER_H_ // Include guards
 #define LPFILTER_H_
@@ -47,13 +31,13 @@ Generated code is based on the following filter design:
 
 */
 
-static const int lpfilter_length = 36;
-extern float lpfilter_coefficients[36];
+static const int lpfilter_length = 448;
+extern float lpfilter_coefficients[448];
 
 typedef struct
 {
 	float * pointer;
-	float state[72];
+	float state[896];
 	float output;
 } lpfilterType;
 

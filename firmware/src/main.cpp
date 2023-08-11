@@ -24,6 +24,8 @@ hw_timer_t *sampling_clock = NULL;
 // ISR variables
 volatile bool request = false;
 volatile long tic, toc = 0L;
+volatile long prebuffer_counter = 0;
+
 // Filter reference
 lpfilterType *pFilter = lpfilter_create();
 bool bFilterActive = false;
@@ -101,6 +103,7 @@ void state_send_cb(){
   uint16_t newSample = 0;
   if(machine.executeOnce){
     byte_count = 0;
+    prebuffer_counter = 0;
     signal_offset = ADS.readADC(0)>1;
     timerAlarmEnable(sampling_clock);
     digitalWrite(STAT_LED_PIN, HIGH);
@@ -114,6 +117,9 @@ void state_send_cb(){
   if(request){
     newSample = ADS.readADC(1)-signal_offset;
     ekg_sample.raw = filter(newSample);
+    // if (prebuffer_counter < lpfilter_length){
+    //   ekg_sample.raw = 13200;
+    // } 
     sample_buffer[byte_count++] = ekg_sample.bytes[0];
     sample_buffer[byte_count++] = ekg_sample.bytes[1];
     request = false;
@@ -123,8 +129,10 @@ void state_send_cb(){
     // Serial.print(",");
     if(byte_count/2 == SAMPLES_PER_FRAME){
       tic = micros();
-      OKDataCharacteristic.setValue(sample_buffer,byte_count);
-      OKDataCharacteristic.notify();
+      if (prebuffer_counter > lpfilter_length){
+        OKDataCharacteristic.setValue(sample_buffer,byte_count);
+        OKDataCharacteristic.notify();
+      }
       // for(int i = 0; i < byte_count; i++){
       //   Serial.print(((uint16_t)sample_buffer[i] | (uint16_t)sample_buffer[++i]<<8)/ADC_STEPS_PER_V);
       //   Serial.print("-");
@@ -147,6 +155,7 @@ State* CONN = machine.addState(&state_conn_cb);
 State* SEND = machine.addState(&state_send_cb);
 
 void IRAM_ATTR onSamplingClock(){
+    prebuffer_counter++;
     request = true;
     tic = micros();
 }
@@ -160,7 +169,7 @@ void timer_setup(void){
 void measure_batt(void){
   float voltage_level;
   voltage_level = analogReadMilliVolts(35)*2.0/1000.0; // factor 2 for compensating the voltage divider the pin 35 is attached to
-  device_info.battery_level = 10 * int(floor(10.0 * (voltage_level - MIN_BATTERY_VOLTAGE) / (MAX_BATTERY_VOLTAGE - MIN_BATTERY_VOLTAGE)));
+  device_info.battery_level = 10 * min(10,int(floor(9.5 * (voltage_level - MIN_BATTERY_VOLTAGE) / (MAX_BATTERY_VOLTAGE - MIN_BATTERY_VOLTAGE))));
   if(machine.isInState(CONN)) OKCtrlCharacteristic.setValue((uint8_t*)&device_info,sizeof(info));
 }
 
@@ -220,6 +229,8 @@ class OKServerCallbacks: public BLEServerCallbacks {
 class OKCtrlCallbacks: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     uint8_t* pData = pCharacteristic->getData();
+    Serial.print("CMD:  ");
+    Serial.println(pData[COMMAND],HEX);
     switch(pData[COMMAND]){
       case 0x00:
       exam_running = true; 
@@ -275,7 +286,7 @@ void ble_setup(void){
 void setup() {
   Serial.begin(115200);
   pinMode(STAT_LED_PIN, OUTPUT);
-  pinMode(4, INPUT);
+  pinMode(PUSH_BTN_PIN, INPUT_PULLUP);
   lpfilter_init(pFilter);
   timer_setup();
   adc_setup();
