@@ -169,7 +169,7 @@ void timer_setup(void){
 void measure_batt(void){
   float voltage_level;
   voltage_level = analogReadMilliVolts(35)*2.0/1000.0; // factor 2 for compensating the voltage divider the pin 35 is attached to
-  device_info.battery_level = 10 * min(10,int(floor(9.5 * (voltage_level - MIN_BATTERY_VOLTAGE) / (MAX_BATTERY_VOLTAGE - MIN_BATTERY_VOLTAGE))));
+  device_info.battery_level = 10 * min(10,int(floor(9.49 * (voltage_level - MIN_BATTERY_VOLTAGE) / (MAX_BATTERY_VOLTAGE - MIN_BATTERY_VOLTAGE))));
   if(machine.isInState(CONN)) OKCtrlCharacteristic.setValue((uint8_t*)&device_info,sizeof(info));
 }
 
