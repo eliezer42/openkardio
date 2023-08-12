@@ -31,13 +31,13 @@ Generated code is based on the following filter design:
 
 */
 
-static const int lpfilter_length = 448;
-extern float lpfilter_coefficients[448];
+static const int lpfilter_length = 480;
+extern float lpfilter_coefficients[480];
 
 typedef struct
 {
 	float * pointer;
-	float state[896];
+	float state[960];
 	float output;
 } lpfilterType;
 
