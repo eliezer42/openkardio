@@ -101,6 +101,8 @@ MDNavigationLayout:
             name: "ekg_detail_view"
             right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['refresh-circle', lambda _: app.retrieve_own_cases()]]
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
+            on_pre_enter:
+                app.root.ids.ekg_plot.reset()
             on_enter:
                 app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
             ExamMetadataDetail:
@@ -160,8 +162,8 @@ MDNavigationLayout:
             name: "ekg_create_view"
             title: "Nuevo EKG"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
-            right_items: [['content-save', lambda _: app.save_exam()],['play',lambda _: app.ble_disconnect()]]
-            on_enter:
+            right_items: [['content-save', lambda _: app.save_exam()],['autorenew',lambda _: app.root.ids.new_ekg.reset()]]
+            on_pre_enter:
                 app.root.ids.new_exam_metadata.populate(self.object_id)
                 app.root.ids.new_ekg.reset()
                 app.root.ids.ok_device_panel.duration = app.store['device']['duration']

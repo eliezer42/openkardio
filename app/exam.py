@@ -37,6 +37,7 @@ class Plot(Widget):
         self.time_generator = utils.time_gen(self.sample_rate)
         with self.canvas.after:
             Color(0, 0, 0, 1)
+            self.preamble = Line(points=[], width = 1.2)
             self.line = Line(points=[], width = 1.2)
 
     def on_sample_rate(self, instance, value):
@@ -69,10 +70,19 @@ class Plot(Widget):
 
     def on_next_samples(self, *args):
         if len(self.next_samples):
-            Logger.info(f"New samples: {len(self.next_samples)}")
+            if len(self.preamble.points) == 0:
+                pre_points = [float(point) for sample in range(193) for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
+                                                self.grid_y_offset + np.interp(13200 if (sample <= 48 or sample > 144) else 19740,[0,self.top_of_scale],[0,self.grid_height])]]
+                pre_points += [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,self.grid_y_offset + np.interp(13200,[0,self.top_of_scale],[0,self.grid_height])]
+                self.preamble.points = pre_points
+                self.line.points = pre_points
+
             next_points = [float(point) for sample in self.next_samples for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
                                                 self.grid_y_offset + np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
-            self.line.points += next_points
+            
+            if len(self.line.points) <= 2*4632: #max points per line
+                self.line.points += next_points
+            
             self.ekg_samples.extend(self.next_samples)
             self.next_samples = []
 
@@ -113,6 +123,7 @@ class Plot(Widget):
         self.ekg_samples = []
         self.next_samples = []
         self.line.points = []
+        self.preamble.points = []
         self.time_generator = utils.time_gen(self.sample_rate)
 
     def populate(self, ekg_id):
@@ -127,12 +138,12 @@ class Plot(Widget):
 
     def get_ekg(self):
         if len(self.ekg_samples):
-            Logger.info(f"Total: {len(self.ekg_samples)}")
+            Logger.info(f"EKG: {len(self.ekg_samples)} samples")
             return {
                 'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array(self.ekg_samples),self.sample_rate))/self.sample_rate)),
                 'sample_rate': self.sample_rate,
                 'gain': self.app.ble.conv_factor,
-                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)[:self.sample_rate*9.6]))
+                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)[:int(self.sample_rate*9.6)]))
             }
         return {
                 'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array([item*16 for item in [959,958,957,955,954,954,953,954,953,951,949,951,950,952,951,947,
@@ -298,7 +309,7 @@ class ExamMetadataDetail(MDBoxLayout):
                 return [0.05, 0.7, 0.05, 1]
 
         try:
-            Logger.warning(f"EXAM ID: {exam_id}")
+            Logger.debug(f"Local ID:{exam_id}")
             app = MDApp.get_running_app()
             self.exam = app.session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
             self.ids.info.icon = MDApp.get_running_app().icons.get(self.exam.patient.sex)
@@ -346,7 +357,7 @@ class OKDevicePanel(MDBoxLayout):
             self.app.ble.transition(ble.ConnState.CONNECTED)
 
     def on_ble_state(self, instance, value):
-        Logger.info(f"DEVICE: {self.ble_state}")
+        Logger.info(f"OKDevice: {self.ble_state}")
         if value == ble.ConnState.IDLE:
             self.button_text = "CONECTAR"
             self.button_color = "blue"
