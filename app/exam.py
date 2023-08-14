@@ -6,6 +6,7 @@ import numpy as np
 import utils.utils as utils
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
+from kivy.core.text import Label as CoreLabel
 from kivy.graphics import Color, Line, Rectangle
 from kivy.properties import DictProperty, StringProperty, ListProperty, ObjectProperty, BooleanProperty, NumericProperty, ColorProperty
 from kivymd.app import MDApp
@@ -72,7 +73,7 @@ class Plot(Widget):
         if len(self.next_samples):
             if len(self.preamble.points) == 0:
                 pre_points = [float(point) for sample in range(193) for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
-                                                self.grid_y_offset + np.interp(13200 if (sample <= 48 or sample > 144) else 19740,[0,self.top_of_scale],[0,self.grid_height])]]
+                                                self.grid_y_offset + np.interp(13200 if (sample <= 38 or sample > 96) else 19765,[0,self.top_of_scale],[0,self.grid_height])]]
                 pre_points += [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,self.grid_y_offset + np.interp(13200,[0,self.top_of_scale],[0,self.grid_height])]
                 self.preamble.points = pre_points
                 self.line.points = pre_points
@@ -99,6 +100,12 @@ class Plot(Widget):
                 Logger.error(e)
  
     def plot_grid(self, *args):
+        mylabel = CoreLabel(text="0.2 s/div - 0.5 mV/div", font_size=dp(11), color=(0, 0, 0, 1))
+        # Force refresh to compute things and generate the texture
+        mylabel.refresh()
+        # Get the texture and the texture size
+        texture = mylabel.texture
+        texture_size = list(texture.size)
         with self.canvas.before:
             Color(rgba=[1.0, 0.85, 0.85, 1])
             Rectangle(pos=self.pos, size=self.size)
@@ -116,6 +123,7 @@ class Plot(Widget):
                     pos = i*self.subdiv_size + self.grid_y
                     line_width = self.GRID_SUBDIV_LINE_WIDTH if (i % self.GRID_SUBDIVS > 0) else self.GRID_DIV_LINE_WIDTH
                     Line(points=[self.grid_x, pos, self.grid_right, pos], width=line_width)
+                Rectangle(texture=texture, size=texture_size, pos=[self.grid_x,0])
             except AttributeError:
                 pass
 
@@ -129,7 +137,6 @@ class Plot(Widget):
     def populate(self, ekg_id):
         self.reset()
         try:
-            Logger.warning(f"EKG ID: {ekg_id}")
             ekg = self.app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
             self.sample_rate = ekg.sample_rate
             self.next_samples = pickle.loads(zlib.decompress(ekg.signal))
