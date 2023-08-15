@@ -36,10 +36,11 @@ class Plot(Widget):
         super().__init__(**kwargs)
         # Clock.schedule_interval(self.update_plot,1/60.0)
         self.time_generator = utils.time_gen(self.sample_rate)
+        self.peaks = []
         with self.canvas.after:
             Color(0, 0, 0, 1)
-            self.preamble = Line(points=[], width = 1.2)
-            self.line = Line(points=[], width = 1.2)
+            self.preamble = Line(points=[], width = 1.25)
+            self.line = Line(points=[], width = 1.25)
 
     def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)
@@ -73,7 +74,7 @@ class Plot(Widget):
         if len(self.next_samples):
             if len(self.preamble.points) == 0:
                 pre_points = [float(point) for sample in range(193) for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
-                                                self.grid_y_offset + np.interp(13200 if (sample <= 38 or sample > 96) else 19765,[0,self.top_of_scale],[0,self.grid_height])]]
+                                                self.grid_y_offset + np.interp(13200 if (sample <= 38 or sample > 96) else 19770,[0,self.top_of_scale],[0,self.grid_height])]]
                 pre_points += [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,self.grid_y_offset + np.interp(13200,[0,self.top_of_scale],[0,self.grid_height])]
                 self.preamble.points = pre_points
                 self.line.points = pre_points
@@ -87,17 +88,19 @@ class Plot(Widget):
             self.ekg_samples.extend(self.next_samples)
             self.next_samples = []
 
-    def on_run_samples(self, *args):
-        print("RUN SAMPLES MODIFIED")
-        if self.run_samples:
-            self.sample_gen.start(10)
-            self.update_plot_event = Clock.schedule_interval(self.update_plot,1/60.0)
-        else:
-            try:
-                self.update_plot_event.cancel()
-                self.sample_gen.stop()
-            except Exception as e:
-                Logger.error(e)
+            if self.peaks:
+
+                for peak in self.peaks:
+                    x_peak = self.preamble.points[-2] + (peak/self.sample_rate)*self.subdiv_size/self.SEC_PER_SUBDIV
+                    mylabel = CoreLabel(text=f"{int(400.0+peak*1000/self.sample_rate)} ms", font_size=dp(11), color=(0, 0, 0, 1))
+                    mylabel.refresh()
+                    texture = mylabel.texture
+                    texture_size = list(texture.size)
+                    with self.canvas:
+                        Line(points=[x_peak,self.grid_y,x_peak,self.y_subdiv_count*self.subdiv_size + self.grid_y],dash_offset=2,width=1.1)
+                        Rectangle(texture=texture, size=texture_size, pos=[x_peak,0])
+
+                self.peaks = []
  
     def plot_grid(self, *args):
         mylabel = CoreLabel(text="0.2 s/div - 0.5 mV/div", font_size=dp(11), color=(0, 0, 0, 1))
@@ -128,6 +131,7 @@ class Plot(Widget):
                 pass
 
     def reset(self):
+        self.canvas.clear()
         self.ekg_samples = []
         self.next_samples = []
         self.line.points = []
@@ -139,7 +143,9 @@ class Plot(Widget):
         try:
             ekg = self.app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
             self.sample_rate = ekg.sample_rate
-            self.next_samples = pickle.loads(zlib.decompress(ekg.signal))
+            signal = pickle.loads(zlib.decompress(ekg.signal))
+            self.peaks = utils.christov_detector(signal,self.sample_rate)
+            self.next_samples = signal
         except Exception as e:
             Logger.error(e)
 
