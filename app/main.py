@@ -103,7 +103,7 @@ class OpenKardioApp(MDApp):
 
     def frame_handler(self, sender, data):
         
-        Logger.info("SENDER: {0}: {1}".format(sender, data))
+        Logger.info("SENDER: {0}: {1} [{2} bytes]".format(sender, data, len(data)))
         if len(data) == 1:
             self.ble.toggle_reception()
             Logger.error(f"Frame: Error while receiving frame. Error code={data}")
@@ -112,7 +112,7 @@ class OpenKardioApp(MDApp):
             try:
                 samples = array.array('h', data).tolist()
                 self.root.ids.new_ekg.next_samples = samples
-                if len(self.root.ids.new_ekg.ekg_samples) >= self.ble.sample_rate*self.store["device"]["duration"]:  #240 spcds * 10 segundos
+                if len(self.root.ids.new_ekg.ekg_samples) >= self.ble.sample_rate*9.6:
                         Logger.info("RIGHT BEFORE TOGGLE RECEPTION")
                         self.ble.transition(ble.ConnState.CONNECTED)
             except Exception as e:
@@ -159,7 +159,7 @@ class OpenKardioApp(MDApp):
             exam_query = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
             exam_remote_ids = [exam.remote_id for exam in exam_query]
             remote_cases = rdb.retrieve_objects("Cases","origin_id",self.store["user"]["id"])
-            Logger.debug(f"REMOTE ID:{str(exam_remote_ids)}")
+            Logger.debug(f"Remote ID:{str(exam_remote_ids)}")
             for gid in remote_cases:
                 case_dict = remote_cases[gid]
                 if gid in exam_remote_ids:
@@ -194,7 +194,7 @@ class OpenKardioApp(MDApp):
  
             exam_query = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
             exam_remote_ids = [exam.remote_id for exam in exam_query]
-            Logger.debug(f"REMOTE ID:{str(exam_remote_ids)}")
+            Logger.debug(f"Remote IDs:{str(exam_remote_ids)}")
             remote_cases = rdb.retrieve_objects("Cases","destination_id",self.store["user"]["id"])
             for gid in remote_cases:
                 data = remote_cases[gid]
@@ -325,7 +325,7 @@ class OpenKardioApp(MDApp):
                 self.dialog.dismiss()
 
         def send_to_firebase(global_id:str):
-            Logger.debug(f"GLOBAL ID: {global_id}")
+            Logger.debug(f"Global ID: {global_id}")
             try:
                 timestamp = datetime.now().replace(microsecond=0)
                 remote_exam_id = rdb.create_object("Cases",
@@ -361,7 +361,6 @@ class OpenKardioApp(MDApp):
                 exam.modified = timestamp
                 exam.remote_id = remote_exam_id
                 self.session.commit()
-                Logger.info(f"Remote ID: {remote_exam_id}")
                 return remote_exam_id
 
             except SQLAlchemyError as e:
@@ -383,11 +382,10 @@ class OpenKardioApp(MDApp):
             if remote_id is not None:
                 self.dialog.dismiss()
                 self.root.ids.screen_manager.get_screen("ekg_detail_view").title = exam.name
-                Logger.debug(f"CASE ID:{remote_id}")
                 exam.destination_id = global_id
                 self.session.commit()
                 self.root.ids.exam_metadata.populate(exam_id)
-                Logger.info("FINISHED CALLBACK")
+                Logger.debug(f"Remote ID:{remote_id}")
                 return
             self.dialog.dismiss()
             

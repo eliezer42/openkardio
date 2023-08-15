@@ -6,6 +6,7 @@ import numpy as np
 import utils.utils as utils
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
+from kivy.core.text import Label as CoreLabel
 from kivy.graphics import Color, Line, Rectangle
 from kivy.core.text import Label as CoreLabel
 from kivy.properties import DictProperty, StringProperty, ListProperty, ObjectProperty, BooleanProperty, NumericProperty, ColorProperty
@@ -17,7 +18,7 @@ import pickle
 from kivy.metrics import dp
 
 class Plot(Widget):
-    sample_rate = NumericProperty(500)
+    sample_rate = NumericProperty(480)
     top_of_scale = NumericProperty(26400)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
@@ -39,12 +40,11 @@ class Plot(Widget):
         super().__init__(**kwargs)
         # Clock.schedule_interval(self.update_plot,1/60.0)
         self.time_generator = utils.time_gen(self.sample_rate)
+        self.peaks = []
         with self.canvas.after:
             Color(0, 0, 0, 1)
-            self.lines = [Line(points=[], width = 1.1) for _ in range(self.MAX_LINES)]
-            self.line_selector = 0
-            self.current_line = self.lines[self.line_selector]
-
+            self.preamble = Line(points=[], width = 1.25)
+            self.line = Line(points=[], width = 1.25)
 
     def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)
@@ -75,9 +75,20 @@ class Plot(Widget):
         self.width = max((len(self.ekg_samples)*self.subdiv_size/(self.sample_rate*self.SEC_PER_SUBDIV))+4*self.MARGINS, self.parent.width)
 
     def on_next_samples(self, *args):
-        next_samples_length = len(self.next_samples)
-        if next_samples_length:
-            Logger.info(f"Sample count: {next_samples_length}")
+        if len(self.next_samples):
+            if len(self.preamble.points) == 0:
+                pre_points = [float(point) for sample in range(193) for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
+                                                self.grid_y_offset + np.interp(13200 if (sample <= 38 or sample > 96) else 19770,[0,self.top_of_scale],[0,self.grid_height])]]
+                pre_points += [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,self.grid_y_offset + np.interp(13200,[0,self.top_of_scale],[0,self.grid_height])]
+                self.preamble.points = pre_points
+                self.line.points = pre_points
+
+            next_points = [float(point) for sample in self.next_samples for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
+                                                self.grid_y_offset + np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
+            
+            if len(self.line.points) <= 2*4632: #max points per line
+                self.line.points += next_points
+            
             self.ekg_samples.extend(self.next_samples)
             next_points = [float(coord) for sample in self.next_samples for coord in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
                                                 self.grid_y_offset + np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
@@ -101,20 +112,23 @@ class Plot(Widget):
                 next_samples_length -= current_space
             self.next_samples = []
 
-    def on_run_samples(self, *args):
-        print("RUN SAMPLES MODIFIED")
-        if self.run_samples:
-            self.sample_gen.start(10)
-            self.update_plot_event = Clock.schedule_interval(self.update_plot,1/60.0)
-        else:
-            try:
-                self.update_plot_event.cancel()
-                self.sample_gen.stop()
-            except Exception as e:
-                Logger.error(e)
+            if self.peaks:
+
+                for peak in self.peaks:
+                    x_peak = self.preamble.points[-2] + (peak/self.sample_rate)*self.subdiv_size/self.SEC_PER_SUBDIV
+                    mylabel = CoreLabel(text=f"{int(400.0+peak*1000/self.sample_rate)} ms", font_size=dp(11), color=(0, 0, 0, 1))
+                    mylabel.refresh()
+                    texture = mylabel.texture
+                    texture_size = list(texture.size)
+                    with self.canvas:
+                        Color(0,0,0,1)
+                        Line(points=[x_peak,self.grid_y,x_peak,self.y_subdiv_count*self.subdiv_size + self.grid_y],dash_offset=2,width=1.1)
+                        Rectangle(texture=texture, size=texture_size, pos=[x_peak,0])
+
+                self.peaks = []
  
     def plot_grid(self, *args):
-        mylabel = CoreLabel(text="0.2 s/div - 0.5 mV/div", font_size=dp(12), color=(0, 0, 0, 1))
+        mylabel = CoreLabel(text="0.2 s/div - 0.5 mV/div", font_size=dp(11), color=(0, 0, 0, 1))
         # Force refresh to compute things and generate the texture
         mylabel.refresh()
         # Get the texture and the texture size
@@ -140,10 +154,11 @@ class Plot(Widget):
                 pass
 
     def reset(self):
+        self.canvas.clear()
         self.ekg_samples = []
         self.next_samples = []
-        for line in self.lines:
-            line.points = []
+        self.line.points = []
+        self.preamble.points = []
         self.time_generator = utils.time_gen(self.sample_rate)
 
     def populate(self, ekg_id):
@@ -151,18 +166,20 @@ class Plot(Widget):
         try:
             ekg = self.app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
             self.sample_rate = ekg.sample_rate
-            self.next_samples = pickle.loads(zlib.decompress(ekg.signal))
+            signal = pickle.loads(zlib.decompress(ekg.signal))
+            self.peaks = utils.christov_detector(signal,self.sample_rate)
+            self.next_samples = signal
         except Exception as e:
             Logger.error(e)
 
     def get_ekg(self):
         if len(self.ekg_samples):
-            Logger.info(f"Total: {len(self.ekg_samples)}")
+            Logger.info(f"EKG: {len(self.ekg_samples)} samples")
             return {
                 'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array(self.ekg_samples),self.sample_rate))/self.sample_rate)),
                 'sample_rate': self.sample_rate,
                 'gain': self.app.ble.conv_factor,
-                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)[:self.sample_rate*self.app.store["device"]["duration"]]))
+                'signal': zlib.compress(pickle.dumps(list(self.ekg_samples)[:int(self.sample_rate*9.6)]))
             }
         return {
                 'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array([item*16 for item in [959,958,957,955,954,954,953,954,953,951,949,951,950,952,951,947,
@@ -328,7 +345,7 @@ class ExamMetadataDetail(MDBoxLayout):
                 return [0.05, 0.7, 0.05, 1]
 
         try:
-            Logger.warning(f"EXAM ID: {exam_id}")
+            Logger.debug(f"Local ID:{exam_id}")
             app = MDApp.get_running_app()
             self.exam = app.session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
             self.ids.info.icon = MDApp.get_running_app().icons.get(self.exam.patient.sex)
@@ -376,7 +393,7 @@ class OKDevicePanel(MDBoxLayout):
             self.app.ble.transition(ble.ConnState.CONNECTED)
 
     def on_ble_state(self, instance, value):
-        Logger.info(f"DEVICE: {self.ble_state}")
+        Logger.info(f"OKDevice: {self.ble_state}")
         if value == ble.ConnState.IDLE:
             self.button_text = "CONECTAR"
             self.button_color = "blue"
