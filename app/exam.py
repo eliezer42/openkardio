@@ -8,7 +8,6 @@ from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.core.text import Label as CoreLabel
 from kivy.graphics import Color, Line, Rectangle
-from kivy.core.text import Label as CoreLabel
 from kivy.properties import DictProperty, StringProperty, ListProperty, ObjectProperty, BooleanProperty, NumericProperty, ColorProperty
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -23,7 +22,6 @@ class Plot(Widget):
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
     next_samples = ListProperty([])
-    current_line = ObjectProperty()
     bpm = NumericProperty(0)
     sample_gen = utils.Signal(2.5, sample_rate, 100, 150, 'square')
     MARGINS = dp(16)
@@ -32,8 +30,6 @@ class Plot(Widget):
     MV_PER_SUBDIV = 0.1
     GRID_SUBDIV_LINE_WIDTH = 0.5
     GRID_DIV_LINE_WIDTH = 1.2
-    MAX_LINES = 4
-    MAX_SAMPLES_PER_LINE = 4000
     app = MDApp.get_running_app()
 
     def __init__(self, **kwargs):
@@ -72,7 +68,7 @@ class Plot(Widget):
             pass
 
     def on_ekg_samples(self,*args):
-        self.width = max((len(self.ekg_samples)*self.subdiv_size/(self.sample_rate*self.SEC_PER_SUBDIV))+4*self.MARGINS, self.parent.width)
+        self.width = max((len(self.ekg_samples)*self.subdiv_size/(self.sample_rate*self.SEC_PER_SUBDIV))+8*self.MARGINS, self.parent.width)
 
     def on_next_samples(self, *args):
         if len(self.next_samples):
@@ -90,45 +86,26 @@ class Plot(Widget):
                 self.line.points += next_points
             
             self.ekg_samples.extend(self.next_samples)
-            next_points = [float(coord) for sample in self.next_samples for coord in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
-                                                self.grid_y_offset + np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
-            while next_samples_length > 0:
-            # if next_samples_length > self.MAX_SAMPLES_PER_LINE - len(self.current_line.points)/2:
-            # self.line_selector*self.MAX_LINES + len(self.current_line.points) 
-                current_space = int(self.MAX_SAMPLES_PER_LINE*2 - len(self.current_line.points))
-                Logger.info(f"CURRENT SPACE: {current_space}")
-                if current_space <= 0:
-                    self.line_selector += 1
-                    try:
-                        last_point = self.current_line.points[-2:]
-                        self.current_line = self.lines[self.line_selector]
-                        self.current_line.points = last_point
-                        current_space = self.MAX_SAMPLES_PER_LINE
-                    except IndexError as e:
-                        Logger.error(f"RUN OUT OF SPACE IN EKG PLOT. {str(e)}")
-                        toast("EKG demasiado extenso.")
-                        break
-                self.current_line.points += next_points[:current_space]
-                next_samples_length -= current_space
             self.next_samples = []
 
             if self.peaks:
 
                 for peak in self.peaks:
                     x_peak = self.preamble.points[-2] + (peak/self.sample_rate)*self.subdiv_size/self.SEC_PER_SUBDIV
-                    mylabel = CoreLabel(text=f"{int(400.0+peak*1000/self.sample_rate)} ms", font_size=dp(11), color=(0, 0, 0, 1))
+                    mylabel = CoreLabel(text=f"{int(400.0+peak*1000/self.sample_rate)} ms", font_size=dp(10), color=(0, 0, 0, 1))
                     mylabel.refresh()
                     texture = mylabel.texture
                     texture_size = list(texture.size)
                     with self.canvas:
-                        Color(0,0,0,1)
-                        Line(points=[x_peak,self.grid_y,x_peak,self.y_subdiv_count*self.subdiv_size + self.grid_y],dash_offset=2,width=1.1)
+                        Color(0.1,0.1,0.1,0.38)
+                        Line(points=[x_peak,self.grid_y,x_peak,self.y_subdiv_count*self.subdiv_size + self.grid_y], width=1.1)
+                        Color(0.1,0.1,0.1,1)
                         Rectangle(texture=texture, size=texture_size, pos=[x_peak,0])
 
                 self.peaks = []
  
     def plot_grid(self, *args):
-        mylabel = CoreLabel(text="0.2 s/div - 0.5 mV/div", font_size=dp(11), color=(0, 0, 0, 1))
+        mylabel = CoreLabel(text="0.2 s/div - 0.5 mV/div", font_size=dp(10), color=(0, 0, 0, 1))
         # Force refresh to compute things and generate the texture
         mylabel.refresh()
         # Get the texture and the texture size
@@ -137,6 +114,8 @@ class Plot(Widget):
         with self.canvas.before:
             Color(rgba=[1.0, 0.85, 0.85, 1])
             Rectangle(pos=self.pos, size=self.size)
+        with self.canvas:
+            # eff_height = round(self.height/amp_divisions)*10 + 1
             Color(rgba=[0.86,0.59,0.59,0.9])
             try:
                 for i in range(0, self.GRID_SUBDIVS*self.grid_x_divs + 1):
@@ -201,7 +180,7 @@ class Plot(Widget):
         961,957,955,959,958,959,958,955,957,957,958,957,957,954,956,957,
         958,957,959,958,960,960,961,960,961,962,963,964,965,963,962,965,
         965,964,966,967,967,965,966,967,968,968,967,965,967,967,966,968,
-        967,966,965,964]*16]),self.sample_rate))/self.sample_rate)),
+        967,966,965,964]*4]),self.sample_rate))/self.sample_rate)),
                 'sample_rate': self.sample_rate,
                 'gain': 1,
                 'signal': zlib.compress(pickle.dumps([item*16 for item in [959,958,957,955,954,954,953,954,953,951,949,951,950,952,951,947,
@@ -223,7 +202,7 @@ class Plot(Widget):
         961,957,955,959,958,959,958,955,957,957,958,957,957,954,956,957,
         958,957,959,958,960,960,961,960,961,962,963,964,965,963,962,965,
         965,964,966,967,967,965,966,967,968,968,967,965,967,967,966,968,
-        967,966,965,964]*16]))
+        967,966,965,964]*4]))
             }
 
 class ExamList(MDBoxLayout):
