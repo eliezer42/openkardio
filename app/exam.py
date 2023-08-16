@@ -248,7 +248,7 @@ class ExamList(MDBoxLayout):
         self.ids.rv.data = []
         app = MDApp.get_running_app()
         field = ldb.Exam.destination_id if (app.store['app']['mode'] == 'H') else ldb.Exam.origin_id
-        status_list = ["DIAGNOSTICADO"] if diagnosed else ["GUARDADO","ENVIADO"]
+        status_list = ["EVALUADO"] if diagnosed else ["GUARDADO","ENVIADO"]
         query = app.session.query(ldb.Exam)\
             .filter(field == app.store['user']['id'])\
             .filter(ldb.Exam.status.in_(status_list))\
@@ -333,7 +333,7 @@ class ExamMetadataDetail(MDBoxLayout):
                 return self.exam.status + "\n" + self.exam.created.strftime("%d-%m-%Y")
             if self.exam.status == "ENVIADO":
                 return self.exam.status + "\n" + self.exam.sent.strftime("%d-%m-%Y")
-            if self.exam.status == "DIAGNOSTICADO":
+            if self.exam.status == "EVALUADO":
                 return self.exam.status + "\n" + self.exam.diagnosed.strftime("%d-%m-%Y")
         
         def exam_satus_color_mapper():
@@ -341,7 +341,7 @@ class ExamMetadataDetail(MDBoxLayout):
                 return [0.7, 0.05, 0.05, 1]
             if self.exam.status == "ENVIADO":
                 return [0.05, 0.05, 0.7, 1]
-            if self.exam.status == "DIAGNOSTICADO":
+            if self.exam.status == "EVALUADO":
                 return [0.05, 0.7, 0.05, 1]
 
         try:

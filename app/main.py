@@ -154,16 +154,16 @@ class OpenKardioApp(MDApp):
             Logger.error(f"Hospitals:{str(e)}")
             toast("Error desconocido.")
 
-    def retrieve_own_cases(self):
+    def upsert_local_cases(self):
         try:
-            exam_query = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
-            exam_remote_ids = [exam.remote_id for exam in exam_query]
+            sent_exams = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
+            sent_exam_remote_ids = [exam.remote_id for exam in sent_exams]
             remote_cases = rdb.retrieve_objects("Cases","origin_id",self.store["user"]["id"])
-            Logger.debug(f"Remote ID:{str(exam_remote_ids)}")
-            for gid in remote_cases:
-                case_dict = remote_cases[gid]
-                if gid in exam_remote_ids:
-                    local_exam = self.session.query(ldb.Exam).filter(ldb.Exam.remote_id == gid).one()
+            Logger.debug(f"Remote ID:{str(sent_exam_remote_ids)}")
+            for oid in remote_cases:
+                case_dict = remote_cases[oid]
+                if oid in sent_exam_remote_ids:
+                    local_exam = self.session.query(ldb.Exam).filter(ldb.Exam.remote_id == oid).one()
                     if datetime.fromisoformat(case_dict['modified']) > local_exam.modified:
                         timestamp = datetime.now().replace(microsecond=0)
                         Logger.debug(f"REMOTE:{case_dict['modified']}")
@@ -173,6 +173,60 @@ class OpenKardioApp(MDApp):
                         local_exam.diagnosed = timestamp
                         local_exam.unopened = True
                         self.session.commit()
+                else:
+                    
+
+                    ekg = {
+                        "bpm":int(case_dict.get('bpm')),
+                        "sample_rate":int(case_dict.get('sample_rate')),
+                        "gain":float(case_dict.get('gain')),
+                        "signal":bytes(case_dict.get('signal'))
+                    }
+                    new_ekg = ldb.Ekg(**ekg)
+                    self.session.add(new_ekg)
+                    self.session.commit()
+                    local_patients = self.session.query(ldb.Patient.identification).filter(ldb.Patient.identification != "")
+                    patient_ids = [patient.identification for patient in local_patients]
+                    if case_dict['patient_identification'] not in patient_ids:
+                        patient = {
+                            "first_name":case_dict.get('patient_first_name'),
+                            "last_name":case_dict.get('patient_last_name'),
+                            "birth_date":datetime.fromisoformat(case_dict.get('patient_birth_date')),
+                            "sex":case_dict.get('patient_sex'),
+                            "identification":case_dict.get('patient_identification'),
+                            "record":case_dict.get('patient_record')
+                        }
+                        new_patient = ldb.Patient(**patient)
+                        self.session.add(new_patient)
+                        self.session.commit()
+                    exam_data = {
+                        'name':'EKG-' + datetime.fromisoformat(case_dict.get('created')).strftime('%Y%m%d') + '-' + str(new_ekg.id),
+                        'ekg_id':new_ekg.id,
+                        'created':datetime.fromisoformat(case_dict.get('created')),
+                        'sent':datetime.fromisoformat(case_dict.get('sent')),
+                        'modified':datetime.fromisoformat(case_dict.get('modified')),
+                        'origin_id':self.store['user']['id'],
+                        'destination_id':case_dict.get('destination_id'),
+                        'spo2':float(case_dict.get('spo2')),
+                        'weight_pd':float(case_dict.get('weight_pd')),
+                        'pressure':case_dict.get('pressure'),
+                        'notes':case_dict.get('notes'),
+                        'status':case_dict.get('status'),
+                        'patient_id':self.session.query(ldb.Patient.id).filter(ldb.Patient.identification==case_dict['identification']).one()
+                    }
+                    if case_dict.get('status') == 'EVALUADO':
+                        exam_data.update(
+                            {
+                                'diagnosed':datetime.fromisoformat(case_dict.get('diagnosed')),
+                                'diagnostic':case_dict.get('diagnostic')
+                            }
+                        )
+                    new_exam = ldb.Exam(**exam_data)
+                    self.session.add(new_exam)
+                    self.session.commit()
+                    # self.root.ids.screen_manager.get_screen("ekg_detail_view").object_id = new_exam.id
+                    # self.root.ids.screen_manager.get_screen("ekg_detail_view").title = new_exam.name
+                    # self.root.ids.screen_manager.current = "ekg_detail_view"
 
         except SQLAlchemyError as e:
             Logger.error(e)
@@ -202,7 +256,6 @@ class OpenKardioApp(MDApp):
                     patient_query = self.session.query(ldb.Patient.identification).filter(ldb.Patient.identification != "")
                     patient_ids = [patient.identification for patient in patient_query]
                     if data.get('patient_identification') not in patient_ids:
-                        Logger.info("THIS GOT EXECUTED")
                         patient = ldb.Patient(
                             first_name = data.get('patient_first_name'),
                             last_name = data.get('patient_last_name'),
@@ -220,7 +273,7 @@ class OpenKardioApp(MDApp):
                         bpm = data.get('bpm'),
                         leads = data.get('leads'),
                         signal = bytes(data.get('signal')),
-                        # gain = data.get('gain')
+                        gain = data.get('gain')
                         )
                     self.session.add(ekg)
                     self.session.commit()
@@ -258,14 +311,18 @@ class OpenKardioApp(MDApp):
             
         finally:
             self.session.rollback()
+
+    def download_cases(self):
+        if self.store['app']['mode'] == 'C':
+            self.upsert_local_cases()
+        elif self.store['app']['mode'] == 'H':
+            self.retrieve_foreign_cases()
           
     def save_exam(self):
         try:
             timestamp = datetime.now().replace(microsecond=0)
             metadata = self.root.ids.new_exam_metadata.save()
-            Logger.info("Metadata saved")
             ekg = self.root.ids.new_ekg.get_ekg()
-            Logger.info("Got Ekg signal")
             new_ekg = ldb.Ekg(**ekg)
             self.session.add(new_ekg)
             self.session.commit()
@@ -298,7 +355,7 @@ class OpenKardioApp(MDApp):
                 updated_case = {'diagnostic':diagnostic,
                                 'diagnosed':timestamp.isoformat(),
                                 'modified':timestamp.isoformat(),
-                                'status':'DIAGNOSTICADO'
+                                'status':'EVALUADO'
                                 }
                 rdb.update_object('Cases',exam.remote_id,updated_case)
                 updated_case['diagnosed'] = timestamp
@@ -506,7 +563,7 @@ class OpenKardioApp(MDApp):
                 .count()/max(exam_count,1))
             self.root.ids["start_exams"]\
                 .add_bar("EVALUADO","#5fd399",self.session.query(ldb.Exam)\
-                .filter(ldb.Exam.status == "DIAGNOSTICADO")\
+                .filter(ldb.Exam.status == "EVALUADO")\
                 .count()/max(exam_count,1))
         else:
             self.root.ids["start_exams"]\
@@ -515,7 +572,7 @@ class OpenKardioApp(MDApp):
                 .count()/max(exam_count,1))
             self.root.ids["start_exams"]\
                 .add_bar("EVALUADO","#5fd399",self.session.query(ldb.Exam)\
-                .filter(ldb.Exam.status == "DIAGNOSTICADO")\
+                .filter(ldb.Exam.status == "EVALUADO")\
                 .count()/max(exam_count,1))
 
         self.root.ids["start_patients"].clear()
