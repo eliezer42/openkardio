@@ -99,7 +99,7 @@ MDNavigationLayout:
 
         ToolbarScreen:
             name: "ekg_detail_view"
-            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['refresh-circle', lambda _: app.retrieve_own_cases()]]
+            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)]]
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
             on_pre_enter:
                 app.root.ids.ekg_plot.reset()

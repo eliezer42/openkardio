@@ -200,6 +200,7 @@ class OpenKardioApp(MDApp):
                         self.session.add(new_patient)
                         self.session.commit()
                     exam_data = {
+                        'remote_id':oid,
                         'name':'EKG-' + datetime.fromisoformat(case_dict.get('created')).strftime('%Y%m%d') + '-' + str(new_ekg.id),
                         'ekg_id':new_ekg.id,
                         'created':datetime.fromisoformat(case_dict.get('created')),
@@ -212,7 +213,7 @@ class OpenKardioApp(MDApp):
                         'pressure':case_dict.get('pressure'),
                         'notes':case_dict.get('notes'),
                         'status':case_dict.get('status'),
-                        'patient_id':self.session.query(ldb.Patient.id).filter(ldb.Patient.identification==case_dict['identification']).one()
+                        'patient_id':self.session.query(ldb.Patient.id).filter(ldb.Patient.identification==case_dict['patient_identification']).one()[0]
                     }
                     if case_dict.get('status') == 'EVALUADO':
                         exam_data.update(
@@ -317,6 +318,8 @@ class OpenKardioApp(MDApp):
             self.upsert_local_cases()
         elif self.store['app']['mode'] == 'H':
             self.retrieve_foreign_cases()
+        self.root.ids.pending.badge_icon = self.root.ids.exam_pending_list.populate("",False,False)
+        self.root.ids.done.badge_icon = self.root.ids.exam_done_list.populate("",False,True)
           
     def save_exam(self):
         try:
