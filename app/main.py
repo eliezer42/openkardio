@@ -329,25 +329,57 @@ class OpenKardioApp(MDApp):
         try:
             timestamp = datetime.now().replace(microsecond=0)
             metadata = self.root.ids.new_exam_metadata.save()
-            ekg = self.root.ids.new_ekg.get_ekg()
-            new_ekg = ldb.Ekg(**ekg)
-            self.session.add(new_ekg)
-            self.session.commit()
-            exam_data = {
-                'name':'EKG-' + date.today().strftime("%Y%m%d") + '-' + str(new_ekg.id),
-                'ekg_id':new_ekg.id,
-                'created':timestamp,
-                'modified':timestamp,
-                'origin_id':self.store['user']['id']
+
+            field_map = {
+                "spo2":"SpO2 (%)",
+                "weight_pd":"Peso (lb)",
+                "pressure":"Presión"
             }
-            exam_data.update(metadata)
-            new_exam = ldb.Exam(**exam_data)
-            self.session.add(new_exam)
-            self.session.commit()
-            Logger.info("Commited Ekg")
-            self.root.ids.screen_manager.get_screen("ekg_detail_view").object_id = new_exam.id
-            self.root.ids.screen_manager.get_screen("ekg_detail_view").title = new_exam.name
-            self.root.ids.screen_manager.current = "ekg_detail_view"
+
+            wrong_field = ""
+
+            for k, v in metadata.items():
+
+                if v is None:
+            
+                    wrong_field = field_map[k]
+                    break
+
+            if wrong_field:
+
+                self.dialog = MDDialog(
+                    text=f"El campo {wrong_field} tiene un valor incorrecto.",
+                    buttons=[
+                        MDRaisedButton(
+                            text="ACEPTAR",
+                            on_release= lambda _: self.dialog.dismiss()
+                        ),
+                    ],
+                )
+                self.dialog.open()
+            
+            else:
+            
+                ekg = self.root.ids.new_ekg.get_ekg()
+                new_ekg = ldb.Ekg(**ekg)
+                self.session.add(new_ekg)
+                self.session.commit()
+                exam_data = {
+                    'name':'EKG-' + date.today().strftime("%Y%m%d") + '-' + str(new_ekg.id),
+                    'ekg_id':new_ekg.id,
+                    'created':timestamp,
+                    'modified':timestamp,
+                    'origin_id':self.store['user']['id']
+                }
+                exam_data.update(metadata)
+                new_exam = ldb.Exam(**exam_data)
+                self.session.add(new_exam)
+                self.session.commit()
+                Logger.info("Commited Ekg")
+                self.root.ids.screen_manager.get_screen("ekg_detail_view").object_id = new_exam.id
+                self.root.ids.screen_manager.get_screen("ekg_detail_view").title = new_exam.name
+                self.root.ids.screen_manager.current = "ekg_detail_view"
+
         except Exception as e:
             Logger.error(e)
             self.session.rollback()

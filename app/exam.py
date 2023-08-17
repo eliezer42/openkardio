@@ -292,9 +292,9 @@ class ExamMetadataForm(MDBoxLayout):
             toast('Hubo un error al buscar el paciente.')
 
     def save(self):
-        self.data["spo2"] = float(self.ids.spo2.text) if self.ids.spo2.text != "" else 0.0
-        self.data["weight_pd"] = float(self.ids.weight_pd.text) if self.ids.weight_pd.text != "" else 0.0
-        self.data["pressure"] = self.ids.pressure.text if self.ids.weight_pd.text != "" else "--/--"
+        self.data["spo2"] = (lambda s: 0.0 if s == "" else (float(s) if s.replace('.', '', 1).isdigit() else None))(self.ids.spo2.text)
+        self.data["weight_pd"] = (lambda s: 0.0 if s == "" else (float(s) if s.replace('.', '', 1).isdigit() else None))(self.ids.weight_pd.text)
+        self.data["pressure"] = (lambda s: "--/--" if s == "" else (s if all(part.isdigit() for part in s.split('/')) else None))(self.ids.pressure.text)
         self.data["notes"] = self.ids.notes.text
         return self.data
     
