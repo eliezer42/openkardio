@@ -14,6 +14,7 @@ MDNavigationLayout:
             name: "homescreen"
             title: "Inicio"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            right_items: [['refresh-circle',lambda _: app.refresh_home()]]
             on_enter: app.populate_start()
 
             Image:
@@ -226,7 +227,6 @@ MDNavigationLayout:
             on_enter:
                 uid.ids.text_field.text = app.store['user']['id']
                 mode_control.populate()
-                device_control.populate()
                 filter_control.populate()
             MDLabel:
                 text: "ID de Usuario"
@@ -243,7 +243,7 @@ MDNavigationLayout:
                 id: mode_control
                 md_bg_color: .8,.8,.9,.9
             MDLabel:
-                text: "Filtro digital (Dispositivo)"
+                text: "Filtro digital (Hardware)"
                 font_style: "H6"
                 halign: "center"
             OKFilterControl:
