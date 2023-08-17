@@ -195,7 +195,7 @@ class OpenKardioApp(MDApp):
                         patient = {
                             "first_name":case_dict.get('patient_first_name'),
                             "last_name":case_dict.get('patient_last_name'),
-                            "birth_date":datetime.fromisoformat(case_dict.get('patient_birth_date')),
+                            "birth_date":datetime.strptime(case_dict.get('patient_birth_date'),'%d-%m-%Y').date(),
                             "sex":case_dict.get('patient_sex'),
                             "identification":case_dict.get('patient_identification'),
                             "record":case_dict.get('patient_record')
