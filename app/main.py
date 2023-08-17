@@ -583,8 +583,8 @@ class OpenKardioApp(MDApp):
                 .count()/max(exam_count,1))
 
         self.root.ids["start_patients"].clear()
-        self.root.ids["start_patients"].add_bar("F","#d35f5f",self.session.query(ldb.Patient).filter(ldb.Patient.sex == "F").count()/max(patient_count,1))
-        self.root.ids["start_patients"].add_bar("M","#5f99d3",self.session.query(ldb.Patient).filter(ldb.Patient.sex == "M").count()/max(patient_count,1))
+        self.root.ids["start_patients"].add_bar("FEMENINO","#d35f5f",self.session.query(ldb.Patient).filter(ldb.Patient.sex == "F").count()/max(patient_count,1))
+        self.root.ids["start_patients"].add_bar("MASCULINO","#5f99d3",self.session.query(ldb.Patient).filter(ldb.Patient.sex == "M").count()/max(patient_count,1))
 
 async def main(app):
     await asyncio.gather(app.async_run("asyncio"), app.ble.connection_handler())

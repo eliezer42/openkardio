@@ -97,8 +97,8 @@ class Plot(Widget):
                     texture = mylabel.texture
                     texture_size = list(texture.size)
                     with self.canvas:
-                        Color(0.1,0.1,0.1,0.38)
-                        Line(points=[x_peak,self.grid_y,x_peak,self.y_subdiv_count*self.subdiv_size + self.grid_y], width=1.1)
+                        Color(0.1,0.1,0.1,0.28)
+                        Line(points=[x_peak,self.grid_y,x_peak,self.y_subdiv_count*self.subdiv_size + self.grid_y], width=2)
                         Color(0.1,0.1,0.1,1)
                         Rectangle(texture=texture, size=texture_size, pos=[x_peak,0])
 

@@ -20,6 +20,7 @@ class PatientList(MDBoxLayout):
                     "text": instance.first_name + " " + instance.last_name,
                     "secondary_text": f"Expediente no.: {instance.record}",
                     "tertiary_text": f"Edad: {instance.age()} años",
+                    "avatar":"",
                     "icon": "face-man" if instance.sex == "M" else "face-woman",
                     "screen": "patient_detail_view",
                     "propagate": True

@@ -203,7 +203,7 @@ MDNavigationLayout:
             title: "View Patient"
             action_items: [['arrow-left', lambda _ : app.go_back("patient_list_view")]]
             right_items: [['delete', lambda _: app.delete_patient(self.object_id)]]
-            on_enter: app.root.ids.patient_detail.populate(self.object_id)
+            on_pre_enter: app.root.ids.patient_detail.populate(self.object_id)
             PatientDetail:
                 id: patient_detail
 
