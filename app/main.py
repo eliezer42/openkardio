@@ -21,6 +21,7 @@ from okwidgets import OKHospitalSelectorItem, OKCommentWidget
 from sqlalchemy.exc import SQLAlchemyError
 from kivy.core.window import Window
 from kivy.utils import platform
+from kivy.clock import Clock
 from os.path import join
 
 if platform != 'android':
@@ -94,6 +95,9 @@ class OpenKardioApp(MDApp):
             )
         self.populate_start()
 
+        Clock.schedule_once(lambda dt: self.populate_hospitals(), 5)
+
+
     def on_stop(self):
         self.running = False
         self.session.close()
@@ -142,7 +146,7 @@ class OpenKardioApp(MDApp):
                     new_hosp = ldb.Hospital(**hosp_data)
                     self.session.add(new_hosp)
                     self.session.commit()
-                    Logger.info(f"NEW HOSP: {new_hosp.id}")
+                    Logger.info(f"Hospital ID: {new_hosp.id}")
 
         except SQLAlchemyError as e:
             Logger.error(e)

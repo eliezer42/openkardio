@@ -14,7 +14,6 @@ MDNavigationLayout:
             name: "homescreen"
             title: "Inicio"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            right_items: [['refresh-circle',lambda _: app.populate_hospitals()]]
             on_enter: app.populate_start()
 
             Image:
@@ -40,14 +39,14 @@ MDNavigationLayout:
                 icon: "clipboard-text-outline"
                 text: "Exámenes"
                 label: "Realizados"
-                size_hint: 1, 0.35
+                size_hint: 1, 0.38
                 
             SummaryCard:
                 id: start_patients
                 icon: "account-group"
                 text: "Pacientes"
                 label: "Registrados"
-                size_hint: 1, 0.35
+                size_hint: 1, 0.32
                 
             MDLabel:
                 text: "Universidad Nacional de Ingeniería"
@@ -223,6 +222,7 @@ MDNavigationLayout:
             name: "config"
             title: "Configuración"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            right_items: [['refresh-circle',lambda _: app.populate_hospitals()]]
             on_enter:
                 uid.ids.text_field.text = app.store['user']['id']
                 mode_control.populate()
