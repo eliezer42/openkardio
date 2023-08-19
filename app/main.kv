@@ -256,6 +256,69 @@ MDNavigationLayout:
             name: "help"
             title: "Ayuda"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            ScrollView:
+                size:self.size
+                GridLayout:
+                    cols:1
+                    size_hint:1,None
+                    padding:"10dp"
+                    spacing:"10dp"
+                    height:self.minimum_height
+                    width:self.minimum_width
+                    MDLabel:
+                        text:"Instrucciones de Uso"
+                        font_style:"H5"
+                        size_hint: 1,None
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text:"1. Encienda el electrocardiógrafo [b]OpenKardio[/b]."
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text:"2.Conecte el cable de electrodos al electrocardiografo."
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text:"3. Coloque los electrodos al paciente segun la imagen y conecte los extremos del cable a cada electrodo segun el codigo de colores."
+                    Image:
+                        source: 'assets/leads_placement.jpg'
+                        size: self.texture_size
+                        fit_mode: "contain"
+                        size_hint: 1,None
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text: "4. Active el [b]Bluetooth[/b] de este dispositivo."
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text: "5. Diríjase a la vista de Exámenes y presione el boton [b]+[/b] para agregar un nuevo examen." 
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text: "6. A continuación elija el paciente para el cual desea registrar un nuevo examen. En caso de ser uno nuevo ingrese los datos del nuevo paciente en la vista de Pacientes, al presionar el botón [b]+[/b]. Por ultimo regrese al paso 5."
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text: "7. Una vez en la vista [b]Nuevo EKG[/b] proceda a llenar a los campos de signos vitales y notas. A continuacion presione [b]CONECTAR[/b]. Una vez que este dispositivo se haya conectado al electrocardiografo, puede presionar [b]EMPEZAR[/b] para comenzar a capturar el EKG."
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text: "8. En caso de que necesite detener el examen puede presionar [b]DETENER[/b]. Para limpiar la grafica, presione el boton [b]RESET[/b] en la parte superior derecha."
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text: "9. Si la toma del EKG fue satisfactoria, presione enviar, y seleccione un Hospital al cual desee enviar el EKG para su diagnostico."
 
 
     MDNavigationDrawer:
