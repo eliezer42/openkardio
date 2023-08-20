@@ -586,7 +586,8 @@ class OpenKardioApp(MDApp):
         unopened_exams = self.session.query(ldb.Exam).filter(ldb.Exam.unopened == True).count()
         info_msg = f"Usted está registrado como {self.store['user']['id']}. Tiene {unopened_exams} exámen(es) sin abrir."
         self.root.ids["info"].text = info_msg
-        exam_count = self.session.query(ldb.Exam).count()
+        field = ldb.Exam.destination_id if (app.store['app']['mode'] == 'H') else ldb.Exam.origin_id
+        exam_count = self.session.query(ldb.Exam).filter(field == app.store['user']['id']).count()
         patient_count = self.session.query(ldb.Patient).count()
         self.root.ids["start_exams"].count = exam_count
         self.root.ids["start_patients"].count = patient_count
@@ -595,23 +596,28 @@ class OpenKardioApp(MDApp):
             self.root.ids["start_exams"]\
                 .add_bar("GUARDADO","#d35f5f",self.session.query(ldb.Exam)\
                 .filter(ldb.Exam.status == "GUARDADO")\
+                .filter(field == app.store['user']['id'])\
                 .count()/max(exam_count,1))
             self.root.ids["start_exams"]\
                 .add_bar("ENVIADO","#5f99d3",self.session.query(ldb.Exam)\
                 .filter(ldb.Exam.status == "ENVIADO")\
+                .filter(field == app.store['user']['id'])\
                 .count()/max(exam_count,1))
             self.root.ids["start_exams"]\
                 .add_bar("EVALUADO","#5fd399",self.session.query(ldb.Exam)\
                 .filter(ldb.Exam.status == "EVALUADO")\
+                .filter(field == app.store['user']['id'])\
                 .count()/max(exam_count,1))
         else:
             self.root.ids["start_exams"]\
                 .add_bar("RECIBIDO","#5f99d3",self.session.query(ldb.Exam)\
                 .filter(ldb.Exam.status == "ENVIADO")\
+                .filter(field == app.store['user']['id'])\
                 .count()/max(exam_count,1))
             self.root.ids["start_exams"]\
                 .add_bar("EVALUADO","#5fd399",self.session.query(ldb.Exam)\
                 .filter(ldb.Exam.status == "EVALUADO")\
+                .filter(field == app.store['user']['id'])\
                 .count()/max(exam_count,1))
 
         self.root.ids["start_patients"].clear()
