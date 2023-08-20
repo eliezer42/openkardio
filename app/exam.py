@@ -216,7 +216,7 @@ class ExamList(MDBoxLayout):
                     "object_id": instance.id,
                     "text": instance.name,
                     "secondary_text": instance.patient.first_name + " " + instance.patient.last_name,
-                    "tertiary_text": f"Expediente no.: {instance.patient.record}",
+                    "tertiary_text": f"Universal ID: {instance.remote_id}",
                     "avatar": "new-box" if instance.unopened else "",
                     "icon": "clipboard-pulse",
                     "screen": "ekg_detail_view",
@@ -237,7 +237,8 @@ class ExamList(MDBoxLayout):
             if search:
                 if text.lower() in instance.patient.first_name.lower() or\
                     text.lower() in instance.patient.last_name.lower() or\
-                    text.lower() in instance.patient.record.lower():
+                    text.lower() in instance.patient.record.lower() or \
+                    text.lower() in str(instance.remote_id):
                     add_item(instance)
             else:
                 add_item(instance)
