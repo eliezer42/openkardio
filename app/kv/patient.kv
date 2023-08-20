@@ -1,6 +1,7 @@
 #:kivy 2.2.0
 #:import * patient
 #:import * okwidgets
+#:import * exam
 
 <PatientList>:
     orientation: 'vertical'
@@ -30,7 +31,7 @@
             
 <PatientDetail>:
     orientation: 'vertical'
-    padding: "12dp"
+    padding: "8dp"
     spacing: "16dp"
     MDCard:
         orientation: "vertical"
@@ -58,6 +59,7 @@
                 height: "36dp"
             MDLabel:
                 id: name
+                markup:True
                 size_hint_y: 1
                 font_style: "Subtitle1"
                 valign: "center"
@@ -66,27 +68,39 @@
             height: "1dp"
         MDLabel:
             id: age
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDLabel:
             id: identification
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDLabel:
             id: record
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDLabel:
             id: address
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDLabel:
             id: contact
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDSeparator:
             height: "2dp"
-        Widget:
+        MDLabel:
+            text: "Examenes recientes"
+            theme_text_color: "Secondary"
+            font_style: "H6"
+            size_hint_y: None
+            height: self.texture_size[1]
+        MDList:
+            id:exams
 
 <FormField>:
     orientation: 'horizontal'
