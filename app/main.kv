@@ -266,6 +266,30 @@ MDNavigationLayout:
                     height:self.minimum_height
                     width:self.minimum_width
                     MDLabel:
+                        text:"Guía rápida"
+                        font_style:"H5"
+                        size_hint: 1,None
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text:"[color=#d35f5f][b]Open[/b][/color][color=#5f99d3][b]Kardio[/b][/color] es una plataforma de electrocardiografía digital que permite la toma exámenes cardíacos y el envío de estos a través de Internet para que sean evaluados de forma remota por un especialista, de tal forma que los pacientes no se vean en la necesidad de desplazarse mas alla de su centro de salud local para descartar padecimientos cardíacos."
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text:"El sistema esta compuesto por [b](a)[/b] una aplicacion disponible para dispositivos móviles Android y escritorios Windows; [b](b)[/b] un dispositivo electrónico que captura la señal electrocardiográfica y la envía a través de Bluetooth Low Energy (BLE); y [b](c)[/b] un servicio en la nube que actúa como backend de la solución."
+                    Image:
+                        source: 'assets/diagram1.png'
+                        size: self.texture_size
+                        fit_mode: "contain"
+                        size_hint: 1,None
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text:"La presente aplicación está estructurada en las siguientes secciones:\n    [b]Inicio[/b]\n    [b]Examenes[/b]\n    [b]Pacientes[/b]\n    [b]Configuracion[/b]\n    [b]Ayuda[/b]"
+                    MDLabel:
                         text:"Instrucciones de Uso"
                         font_style:"H5"
                         size_hint: 1,None
@@ -319,8 +343,21 @@ MDNavigationLayout:
                         adaptive_height:True
                         size_hint: 1,None
                         text: "9. Si la toma del EKG fue satisfactoria, presione enviar, y seleccione un Hospital al cual desee enviar el EKG para su diagnostico."
-
-
+                    MDLabel:
+                        text:"Acerca de"
+                        font_style:"H5"
+                        size_hint: 1,None
+                    MDLabel:
+                        markup:True
+                        adaptive_height:True
+                        size_hint: 1,None
+                        text:"[b]OpenKardio v0.1[/b].\nEsta aplicación es de código abierto como parte de un proyecto monográfico de la Universidad Nacional de Ingeniería de Nicaragua. El código fuente está disponible en el repositorio [u]https://github.com/eliezer42/openkardio[/u]. Para soporte escriba al correo openkardio@gmail.com"
+                    Image:
+                        source: 'assets/uni-mini-logo.png'
+                        size: self.texture_size
+                        fit_mode: "contain"
+                        size_hint: 1,None
+                        
     MDNavigationDrawer:
         id: nav_drawer
         ContentNavigationDrawer:
