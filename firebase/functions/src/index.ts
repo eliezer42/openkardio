@@ -5,6 +5,8 @@ import * as admin from "firebase-admin";
 import * as nodemailer from "nodemailer";
 import * as canvas from "canvas";
 import * as zlib from "zlib";
+import * as moment from "moment-timezone";
+import * as cors from "cors";
 
 admin.initializeApp();
 
@@ -44,6 +46,18 @@ function normalizeIntArray(array: Int16Array): Float32Array {
   return normalizedArray;
 }
 
+function generateTimestamp(): string {
+  // Get the current timestamp in UTC
+  const utcTimestamp = Date.now();
+
+  // Convert to the desired timezone (UTC-6)
+  const utcMinus6Timestamp = moment(utcTimestamp).tz("America/Managua");
+
+  // Format the timestamp in ISO format
+  const isoTimestamp = utcMinus6Timestamp.format("YYYY-MM-DDTHH:mm:ss");
+
+  return isoTimestamp;
+}
 
 exports.sendNotificationOnCreation = functions.database
   .ref("Cases/{caseId}")
@@ -137,85 +151,107 @@ exports.sendNotificationOnCreation = functions.database
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "openkardio@gmail.com",
+        user: functions.config().gmail.address,
         pass: functions.config().gmail.password,
       },
     });
 
     const htmlContent = `
-<p><span style="font-family:Verdana,Geneva,sans-serif"><strong>DATOS DEL PACIENTE</strong></span></p>
+<html>
+<head>
+  <style>
+    .button {
+      display: inline-block;
+      background-color: #afcce9;
+      color: #0e0e0e;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
 
-<table border="1" cellpadding="1" cellspacing="1" style="width:438.6px">
-<tbody>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Unidad de Salud</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${origId}</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Nombre del paciente</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientName}</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Edad</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientAge} años</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Expediente</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientRecord}</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Doc. Identidad</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientIdentification}</span></td>
-</tr>
-</tbody>
-</table>
+  <p><span style="font-family:Verdana,Geneva,sans-serif"><strong>NUEVO EXAMEN</strong></span></p>
 
-<p>&nbsp;</p>
+  <p>✅<span style="font-family:Verdana,Geneva,sans-serif"> Ingrese a la aplicaci&oacute;n de <strong>OpenKardio</strong> para revisar el examen.</span></p>
+  <p>✅<span style="font-family:Verdana,Geneva,sans-serif"> Alternativamente, puedes enviar tu diagn&oacute;stico en el siguiente enlace:</span></p>
 
-<p><span style="font-family:Verdana,Geneva,sans-serif"><strong>DETALLES DEL EXAMEN</strong></span></p>
+  <a class="button" href="${functions.config().form.url}/diagnosis-form.html?examId=${caseId}"><strong>Diagnosticar examen</strong></a>
+  <p>&nbsp;</p>
 
-<table border="1" cellpadding="1" cellspacing="1" style="width:438.6px">
-<tbody>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>ID del Caso</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${caseId}</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Fecha y Hora</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${created}</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>SpO2</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${spo2.toString()} %</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Peso</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${weight.toString()} lbs</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Presión</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${pressure}</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Ritmo Cardiaco</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${bpm.toString()} bpm</span></td>
-</tr>
+  <p><span style="font-family:Verdana,Geneva,sans-serif"><strong>DATOS DEL PACIENTE</strong></span></p>
 
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Derivaciones</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${leads}</span></td>
-</tr>
-<tr>
-<td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Tasa de muestreo</strong></span></td>
-<td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${sampleRate.toString()} sps</span></td>
-</tr>
+  <table border="1" cellpadding="1" cellspacing="1" style="width:438.6px">
+  <tbody>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Unidad de Salud</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${origId}</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Nombre del paciente</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientName}</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Edad</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientAge} años</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Expediente</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientRecord}</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Doc. Identidad</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientIdentification}</span></td>
+  </tr>
+  </tbody>
+  </table>
 
-</tbody>
-</table>
+  <p>&nbsp;</p>
 
-<p>✅<span style="font-family:Verdana,Geneva,sans-serif">Ingrese a la aplicaci&oacute;n de <strong>OpenKardio</strong> para revisar el ex&aacute;men.</span></p>
+  <p><span style="font-family:Verdana,Geneva,sans-serif"><strong>DETALLES DEL EXAMEN</strong></span></p>
 
-<p>&nbsp;</p>
+  <table border="1" cellpadding="1" cellspacing="1" style="width:438.6px">
+  <tbody>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>ID del Caso</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${caseId}</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Fecha y Hora</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${created}</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>SpO2</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${spo2.toString()} %</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Peso</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${weight.toString()} lbs</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Presión</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${pressure}</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Ritmo Cardiaco</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${bpm.toString()} bpm</span></td>
+  </tr>
+
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Derivaciones</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${leads}</span></td>
+  </tr>
+  <tr>
+  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Tasa de muestreo</strong></span></td>
+  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${sampleRate.toString()} sps</span></td>
+  </tr>
+
+  </tbody>
+  </table>
+
+  <p>&nbsp;</p>
+</body>
     `;
 
     let origEmail = "";
@@ -234,9 +270,9 @@ exports.sendNotificationOnCreation = functions.database
     }
 
     const mailOptions = {
-      from: "openkardio@gmail.com",
+      from: functions.config().gmail.address,
       to: email,
-      replyTo: origEmail.length ? origEmail : "openkardio@gmail.com",
+      replyTo: origEmail.length ? origEmail : functions.config().gmail.address,
       subject: `Nuevo EKG para ${destId}`,
       html: htmlContent,
       attachments: [{
@@ -250,16 +286,59 @@ exports.sendNotificationOnCreation = functions.database
     console.log("Email sent successfully");
   });
 
+// Firebase Cloud Function to handle diagnosis submission
+exports.submitDiagnosis = functions.https.onRequest((req, res) => {
+  cors({origin: true})(req, res, () => {
+    const examId = req.body.examId;
+    const diagnosis = req.body.diagnosis;
+    const timestamp = generateTimestamp();
 
-// export const onMessageUpdate = functions.database
-//   .ref("Cases/{caseId}")
-//   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-//   .onUpdate((change, context) => {
-//     const caseId = context.params.caseId;
-//     console.log(`Edited case ${caseId}`);
-//     const after = change.after.val();
+    const updateObj = {
+      diagnostic: diagnosis,
+      status: "EVALUADO",
+      modified: timestamp,
+      diagnosed: timestamp,
+    };
 
+    // Update the diagnosis field in the Realtime Database
+    admin.database().ref(`/Cases/${examId}`).update(updateObj)
+      .then(() => {
+        res.status(200).send("Diagnosis submitted successfully");
+      })
+      .catch((error) => {
+        console.error("Error receiving diagnostic:", error);
+        res.status(500).send("Error submitting diagnosis");
+      });
+  });
+});
 
-//     const timeEdited = Date.now();
-//     return null;
-//   });
+exports.checkDiagnosisStatus = functions.https.onRequest((req, res) => {
+  cors({origin: true})(req, res, async () => {
+    try {
+      const examId = req.query.examId;
+
+      // Fetch exam data from Realtime Database
+      const examSnapshot = await admin
+        .database()
+        .ref(`/Cases/${examId}`)
+        .once("value");
+      const exam = examSnapshot.val();
+
+      if (!exam) {
+        res.status(404).send("Exam not found");
+        return;
+      }
+
+      const response = {
+        isDiagnosed: exam.status === "EVALUADO",
+        diagnostic: exam.diagnostic || null,
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error:", error);
+      res.status(500).send("An error occurred");
+    }
+  });
+});
+
