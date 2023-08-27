@@ -217,7 +217,7 @@ class ExamList(MDBoxLayout):
                     "object_id": instance.id,
                     "text": instance.name,
                     "secondary_text": instance.patient.first_name + " " + instance.patient.last_name,
-                    "tertiary_text": f"Universal ID: {instance.remote_id}",
+                    "tertiary_text": f"Global ID: {instance.remote_id}",
                     "avatar": "new-box" if instance.unopened else "",
                     "icon": "clipboard-pulse",
                     "screen": "ekg_detail_view",
@@ -339,7 +339,9 @@ class ExamMetadataDetail(MDBoxLayout):
             self.ids.leads.text = str(self.exam.ekg.leads) + " leads"
             self.ids.status.text = exam_status_text_mapper()
             self.ids.status.text_color = exam_satus_color_mapper()
+            app.root.ids.comment_label.text = f"Comentarios:\n[{self.exam.origin_id}]"
             app.root.ids.notes.text = self.exam.notes
+            app.root.ids.diagnosis_label.text = f"Diagnóstico:\n[{self.exam.destination_id}]"
             app.root.ids.diagnostic.text = self.exam.diagnostic
             return self.exam.ekg_id
         except SQLAlchemyError as e:

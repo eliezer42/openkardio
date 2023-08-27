@@ -72,7 +72,7 @@ MDNavigationLayout:
             name: "ekg_list_view"
             title: "Exámenes"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            right_items: [['plus-box', lambda _: app.go_to("select_patient_view")],['refresh-circle',lambda _: app.download_cases()]]
+            right_items: [['plus-box', lambda _: app.try_exam_creation()],['refresh-circle',lambda _: app.download_cases()]]
             on_enter:
                 app.root.ids.pending.badge_icon = app.root.ids.exam_pending_list.populate("",False,False)
                 app.root.ids.done.badge_icon = app.root.ids.exam_done_list.populate("",False,True)
@@ -108,7 +108,7 @@ MDNavigationLayout:
                 app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
             ExamMetadataDetail:
                 id: exam_metadata
-                size_hint_y: 0.35
+                size_hint_y: 0.36
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
@@ -120,11 +120,11 @@ MDNavigationLayout:
                     width: self.parent.width
             MDBoxLayout:
                 orientation:'horizontal'
-                size_hint_y: 0.25
+                size_hint_y: 0.28
                 padding: "2dp"
                 spacing: "2dp"
                 MDLabel:
-                    text: "Comentarios:"
+                    id: comment_label
                     font_style: "Subtitle2"
                     halign: "right"
                     size_hint_x: 0.3
@@ -135,11 +135,11 @@ MDNavigationLayout:
                     md_bg_color: 1,1,1,0.94
             MDBoxLayout:
                 orientation:'horizontal'
-                size_hint_y: 0.25
+                size_hint_y: 0.28
                 padding: "2dp"
                 spacing: "2dp"
                 MDLabel:
-                    text: "Diagnóstico:"
+                    id: diagnosis_label
                     font_style: "Subtitle2"
                     halign: "right"
                     size_hint_x: 0.3

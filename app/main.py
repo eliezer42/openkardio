@@ -164,10 +164,10 @@ class OpenKardioApp(MDApp):
             sent_exam_remote_ids = [exam.remote_id for exam in sent_exams]
             remote_cases = rdb.retrieve_objects("Cases","origin_id",self.store["user"]["id"])
             Logger.debug(f"Remote ID:{str(sent_exam_remote_ids)}")
-            for oid in remote_cases:
-                case_dict = remote_cases[oid]
-                if oid in sent_exam_remote_ids:
-                    local_exam = self.session.query(ldb.Exam).filter(ldb.Exam.remote_id == oid).one()
+            for gid in remote_cases:
+                case_dict = remote_cases[gid]
+                if gid in sent_exam_remote_ids:
+                    local_exam = self.session.query(ldb.Exam).filter(ldb.Exam.remote_id == gid).one()
                     if datetime.fromisoformat(case_dict['modified']) > local_exam.modified:
                         timestamp = datetime.now().replace(microsecond=0)
                         Logger.debug(f"REMOTE:{case_dict['modified']}")
@@ -204,7 +204,7 @@ class OpenKardioApp(MDApp):
                         self.session.add(new_patient)
                         self.session.commit()
                     exam_data = {
-                        'remote_id':oid,
+                        'remote_id':gid,
                         'name':'EKG-' + datetime.fromisoformat(case_dict.get('created')).strftime('%Y%m%d') + '-' + str(new_ekg.id),
                         'ekg_id':new_ekg.id,
                         'created':datetime.fromisoformat(case_dict.get('created')),
@@ -252,12 +252,12 @@ class OpenKardioApp(MDApp):
         try:
  
             exam_query = self.session.query(ldb.Exam.remote_id).filter(ldb.Exam.remote_id != "")
-            exam_remote_ids = [exam.remote_id for exam in exam_query]
-            Logger.debug(f"Remote IDs:{str(exam_remote_ids)}")
+            local_exam_gids = [exam.remote_id for exam in exam_query]
+            Logger.debug(f"Local GIDs:{str(local_exam_gids)}")
             remote_cases = rdb.retrieve_objects("Cases","destination_id",self.store["user"]["id"])
             for gid in remote_cases:
                 data = remote_cases[gid]
-                if gid not in exam_remote_ids:
+                if gid not in local_exam_gids:
                     patient_query = self.session.query(ldb.Patient.identification).filter(ldb.Patient.identification != "")
                     patient_ids = [patient.identification for patient in patient_query]
                     if data.get('patient_identification') not in patient_ids:
@@ -301,6 +301,16 @@ class OpenKardioApp(MDApp):
 
                     self.session.add(exam)
                     self.session.commit()
+                else:
+                    local_exam = self.session.query(ldb.Exam).filter(ldb.Exam.remote_id == gid).first()
+                    if data.get('status') == 'EVALUADO' and local_exam.status == 'ENVIADO':
+                        local_exam.status = 'EVALUADO'
+                        local_exam.diagnostic = data.get('diagnostic')
+                        local_exam.diagnosed = datetime.fromisoformat(data.get('diagnosed'))
+                        local_exam.modified = datetime.fromisoformat(data.get('modified'))
+                        self.session.commit()
+                    
+
 
         except SQLAlchemyError as e:
             Logger.error(e)
@@ -324,8 +334,36 @@ class OpenKardioApp(MDApp):
             self.retrieve_foreign_cases()
         self.root.ids.pending.badge_icon = self.root.ids.exam_pending_list.populate("",False,False)
         self.root.ids.done.badge_icon = self.root.ids.exam_done_list.populate("",False,True)
+
+    def try_exam_creation(self):
+        if self.store['app']['mode'] == 'H':
+            toast("Modo 'Hospital' activo. No puede crear exámenes.")
+        else:
+            self.go_to('select_patient_view')
           
     def save_exam(self):
+
+        def save():
+            ekg = self.root.ids.new_ekg.get_ekg()
+            new_ekg = ldb.Ekg(**ekg)
+            self.session.add(new_ekg)
+            self.session.commit()
+            exam_data = {
+                'name':'EKG-' + date.today().strftime("%Y%m%d") + '-' + str(new_ekg.id),
+                'ekg_id':new_ekg.id,
+                'created':timestamp,
+                'modified':timestamp,
+                'origin_id':self.store['user']['id']
+            }
+            exam_data.update(metadata)
+            new_exam = ldb.Exam(**exam_data)
+            self.session.add(new_exam)
+            self.session.commit()
+            Logger.info("Commited Ekg")
+            self.root.ids.screen_manager.get_screen("ekg_detail_view").object_id = new_exam.id
+            self.root.ids.screen_manager.get_screen("ekg_detail_view").title = new_exam.name
+            self.root.ids.screen_manager.current = "ekg_detail_view"
+
         try:
             timestamp = datetime.now().replace(microsecond=0)
             metadata = self.root.ids.new_exam_metadata.save()
@@ -357,28 +395,29 @@ class OpenKardioApp(MDApp):
                     ],
                 )
                 self.dialog.open()
+
+            elif metadata['notes'] == "":
+
+                self.dialog = MDDialog(
+                    text=f"Los comentarios están vacíos. ¿Desea continuar?",
+                    buttons=[
+                        MDFlatButton(
+                            text="CANCELAR",
+                            on_release= lambda _: self.dialog.dismiss()
+                        ),
+                        MDRaisedButton(
+                            text="ACEPTAR",
+                            on_release= lambda _: (save(), self.dialog.dismiss())
+                        ),
+                    ],
+                )
+                self.dialog.open()
             
             else:
+
+                save()
+                
             
-                ekg = self.root.ids.new_ekg.get_ekg()
-                new_ekg = ldb.Ekg(**ekg)
-                self.session.add(new_ekg)
-                self.session.commit()
-                exam_data = {
-                    'name':'EKG-' + date.today().strftime("%Y%m%d") + '-' + str(new_ekg.id),
-                    'ekg_id':new_ekg.id,
-                    'created':timestamp,
-                    'modified':timestamp,
-                    'origin_id':self.store['user']['id']
-                }
-                exam_data.update(metadata)
-                new_exam = ldb.Exam(**exam_data)
-                self.session.add(new_exam)
-                self.session.commit()
-                Logger.info("Commited Ekg")
-                self.root.ids.screen_manager.get_screen("ekg_detail_view").object_id = new_exam.id
-                self.root.ids.screen_manager.get_screen("ekg_detail_view").title = new_exam.name
-                self.root.ids.screen_manager.current = "ekg_detail_view"
 
         except Exception as e:
             Logger.error(e)
@@ -492,7 +531,7 @@ class OpenKardioApp(MDApp):
         
         if self.store['app']['mode'] != 'H':
             hosp_list = self.session.query(ldb.Hospital).order_by(ldb.Hospital.name).all()
-            Logger.critical([hosp.global_id for hosp in hosp_list])
+            Logger.debug([hosp.global_id for hosp in hosp_list])
             self.dialog = MDDialog(
                 title="Hospital de destino",
                 type="simple",
