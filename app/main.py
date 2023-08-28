@@ -75,8 +75,22 @@ class OpenKardioApp(MDApp):
         EventLoop.window.bind(on_keyboard=self.hook_keyboard)
         self.session = ldb.session_init(getattr(self, 'user_data_dir'))
         if self.session.query(ldb.Patient).first() is None:
-                patient1 = ldb.Patient(first_name="Pedro", last_name="Perez", sex="M", birth_date=date(1998, 3, 28), record="123-456-789", identification="123")
-                patient2 = ldb.Patient(first_name="Maria", last_name="Lopez", sex="F", birth_date=date(1970, 12, 13), record="123-456-789", identification="321")
+                patient1 = ldb.Patient(first_name="Pedro",
+                                       last_name="Perez",
+                                       sex="M",
+                                       birth_date=date(1968, 8, 28),
+                                       record="R0001",
+                                       identification="441-280868-0006T",
+                                       address="San Ramón, Matagalpa",
+                                       emergency_contact="505 8765 4321")
+                patient2 = ldb.Patient(first_name="Maria",
+                                       last_name="Lopez",
+                                       sex="F",
+                                       birth_date=date(1972, 4, 5),
+                                       record="R0002",
+                                       identification="321-050472-0001K",
+                                       address="Camoapa, Boaco",
+                                       emergency_contact="505 8765 4321")
                 self.session.add_all([patient1, patient2])
                 self.session.commit()
         self.root.ids.patient_form.sex_menu = MDDropdownMenu(caller = self.root.ids.patient_form.ids.sex,
@@ -207,7 +221,8 @@ class OpenKardioApp(MDApp):
                             "birth_date":datetime.strptime(case_dict.get('patient_birth_date'),'%d-%m-%Y').date(),
                             "sex":case_dict.get('patient_sex'),
                             "identification":case_dict.get('patient_identification'),
-                            "record":case_dict.get('patient_record')
+                            "record":case_dict.get('patient_record'),
+                            "address":case_dict.get('ptient_address')
                         }
                         new_patient = ldb.Patient(**patient)
                         self.session.add(new_patient)
@@ -276,7 +291,8 @@ class OpenKardioApp(MDApp):
                             birth_date = datetime.strptime(data.get('patient_birth_date'),'%d-%m-%Y').date(),
                             sex = data.get('patient_sex'),
                             identification = data.get('patient_identification'),
-                            record = data.get('patient_record')
+                            record = data.get('patient_record'),
+                            address = data.get('patient_address')
                         )
                         self.session.add(patient)
                         self.session.commit()
@@ -488,6 +504,7 @@ class OpenKardioApp(MDApp):
                         'patient_identification':exam.patient.identification,
                         'patient_record':exam.patient.record,
                         'patient_sex':exam.patient.sex,
+                        'patient_address':exam.patient.address,
                         'pressure':exam.pressure,
                         'spo2':exam.spo2,
                         'weight_pd':exam.weight_pd,
