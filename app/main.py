@@ -67,7 +67,7 @@ class OpenKardioApp(MDApp):
                 self.user_id = self.store["user"]["id"]
                 
 
-            return Builder.load_file("main.kv")
+            return Builder.load_file("kv/main.kv")
         
     def on_start(self):
         self.session = ldb.session_init(getattr(self, 'user_data_dir'))
@@ -592,8 +592,8 @@ class OpenKardioApp(MDApp):
     def delete_exam(self, exam_id):
         
         def delete_from_db():
-            obj = self.session.query(ldb.Exam).get(exam_id)
             try:
+                obj = self.session.query(ldb.Exam).get(exam_id)
                 self.session.delete(obj)
                 self.session.commit()
                 Logger.info(f"Exam {exam_id} deleted successfully.")
@@ -677,7 +677,7 @@ async def main(app):
     await asyncio.gather(app.async_run("asyncio"), app.ble.connection_handler())
 
 if __name__ == "__main__":
-    Logger.setLevel(logging.DEBUG)
+    Logger.setLevel(logging.INFO)
     # app running on one thread with two async coroutines
     app = OpenKardioApp()
     asyncio.run(main(app))
