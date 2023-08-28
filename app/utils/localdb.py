@@ -49,7 +49,7 @@ class Ekg(Base):
     id = Column(Integer, primary_key=True)
     sample_rate = Column(Integer)
     signal = Column(LargeBinary)
-    gain = Column(Float, default=1.0)
+    gain = Column(Float, default=8800.0)
     bpm = Column(Integer)
     leads = Column(Integer, default=1)
     disabled = Column(Boolean, default=False)

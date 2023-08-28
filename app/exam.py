@@ -5,29 +5,31 @@ import utils.ble as ble
 import numpy as np
 import utils.utils as utils
 from kivy.uix.widget import Widget
-from kivy.clock import Clock
 from kivy.core.text import Label as CoreLabel
 from kivy.graphics import Color, Line, Rectangle
 from kivy.properties import DictProperty, StringProperty, ListProperty, ObjectProperty, BooleanProperty, NumericProperty, ColorProperty
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.toast import toast
+from kivy.metrics import dp
+from kivy.utils import platform
 import zlib
 import array
-from kivy.metrics import dp
 
 class Plot(Widget):
     sample_rate = NumericProperty(480)
     top_of_scale = NumericProperty(26400)
+    gain = NumericProperty(1)
     run_samples = BooleanProperty(False)
     ekg_samples = ListProperty([])
     next_samples = ListProperty([])
     bpm = NumericProperty(0)
-    sample_gen = utils.Signal(2.5, sample_rate, 100, 150, 'square')
     MARGINS = dp(16)
     GRID_SUBDIVS = 5
     SEC_PER_SUBDIV = 0.04
     MV_PER_SUBDIV = 0.1
+    SEC_PER_DIV = GRID_SUBDIVS*SEC_PER_SUBDIV
+    MV_PER_DIV = GRID_SUBDIVS*MV_PER_SUBDIV
     GRID_SUBDIV_LINE_WIDTH = 0.5
     GRID_DIV_LINE_WIDTH = 1.2
     app = MDApp.get_running_app()
@@ -39,8 +41,8 @@ class Plot(Widget):
         self.peaks = []
         with self.canvas.after:
             Color(0, 0, 0, 1)
-            self.preamble = Line(points=[], width = 1.25)
-            self.line = Line(points=[], width = 1.25)
+            self.preamble = Line(points=[], width = 1.25 if platform == 'android' else 1)
+            self.line = Line(points=[], width = 1.25 if platform == 'android' else 1)
 
     def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)
@@ -74,13 +76,13 @@ class Plot(Widget):
         if len(self.next_samples):
             if len(self.preamble.points) == 0:
                 pre_points = [float(point) for sample in range(193) for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
-                                                self.grid_y_offset + np.interp(13200 if (sample <= 38 or sample > 96) else 19770,[0,self.top_of_scale],[0,self.grid_height])]]
+                                                self.grid_y_offset + np.interp(13200 if (sample <= 38 or sample > 96) else 19780,[0,self.top_of_scale],[0,self.grid_height])]]
                 pre_points += [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,self.grid_y_offset + np.interp(13200,[0,self.top_of_scale],[0,self.grid_height])]
                 self.preamble.points = pre_points
                 self.line.points = pre_points
 
             next_points = [float(point) for sample in self.next_samples for point in [self.grid_x + next(self.time_generator)*self.subdiv_size/self.SEC_PER_SUBDIV,
-                                                self.grid_y_offset + np.interp(sample,[0,self.top_of_scale],[0,self.grid_height])]]
+                                                self.grid_y_offset + np.interp(sample/self.gain,[-(self.grid_y_divs*self.MV_PER_DIV)/2,(self.grid_y_divs*self.MV_PER_DIV)/2],[0,self.grid_height])]]
             
             if len(self.line.points) <= 2*4632: #max points per line
                 self.line.points += next_points
@@ -97,7 +99,7 @@ class Plot(Widget):
                     texture = mylabel.texture
                     texture_size = list(texture.size)
                     with self.canvas:
-                        Color(0.1,0.1,0.1,0.28)
+                        Color(0.1,0.1,0.1,0.2)
                         Line(points=[x_peak,self.grid_y,x_peak,self.y_subdiv_count*self.subdiv_size + self.grid_y], width=2)
                         Color(0.1,0.1,0.1,1)
                         Rectangle(texture=texture, size=texture_size, pos=[x_peak,0])
@@ -146,6 +148,7 @@ class Plot(Widget):
         try:
             ekg = self.app.session.query(ldb.Ekg).filter(ldb.Ekg.id == ekg_id).one()
             self.sample_rate = ekg.sample_rate
+            self.gain = ekg.gain
             signal = array.array('h',zlib.decompress(ekg.signal)).tolist()
             self.peaks = utils.christov_detector(signal,self.sample_rate)
             self.next_samples = signal
@@ -162,48 +165,12 @@ class Plot(Widget):
                 'signal': zlib.compress(bytearray(array.array('h',list(self.ekg_samples)[:int(self.sample_rate*9.6)])))
             }
         return {
-                'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array([item*16 for item in [959,958,957,955,954,954,953,954,953,951,949,951,950,952,951,947,
-        947,948,950,949,949,947,945,946,947,945,945,943,942,942,943,944,
-        944,942,942,942,943,943,943,944,944,944,947,947,948,943,943,945,
-        945,947,951,950,954,957,958,960,961,958,957,960,962,966,966,963,
-        961,964,968,966,966,964,960,959,955,955,956,954,955,956,960,959,
-        956,951,947,946,948,947,945,941,938,938,935,935,933,933,933,935,
-        937,937,934,931,930,932,934,935,936,935,933,933,934,935,934,933,
-        929,921,910,904,907,917,930,952,990,1058,1131,1204,1267,1325,1361,
-        1364,1325,1236,1122,1019,951,919,909,910,928,948,957,955,945,942,
-        938,941,940,939,936,930,929,928,929,929,928,927,925,927,927,926,
-        928,926,927,928,930,929,927,926,926,926,929,928,930,928,926,927,
-        933,934,934,933,929,935,937,939,939,937,938,942,944,948,949,951,
-        953,957,961,965,966,970,972,976,981,983,988,990,992,998,1003,1006,
-        1010,1012,1013,1015,1019,1025,1026,1026,1027,1031,1032,1035,1036,
-        1031,1030,1033,1031,1032,1030,1025,1022,1018,1016,1013,1005,1003,
-        997,993,990,989,984,979,972,971,970,971,967,964,962,961,963,964,
-        961,957,955,959,958,959,958,955,957,957,958,957,957,954,956,957,
-        958,957,959,958,960,960,961,960,961,962,963,964,965,963,962,965,
-        965,964,966,967,967,965,966,967,968,968,967,965,967,967,966,968,
-        967,966,965,964]*4]),self.sample_rate))/self.sample_rate)),
+                'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array([item*16 for item in
+        utils.single_pulse*10])-936,self.sample_rate))/self.sample_rate)),
                 'sample_rate': self.sample_rate,
-                'gain': 1,
-                'signal': zlib.compress(bytearray(array.array('h',[item*16 for item in [959,958,957,955,954,954,953,954,953,951,949,951,950,952,951,947,
-        947,948,950,949,949,947,945,946,947,945,945,943,942,942,943,944,
-        944,942,942,942,943,943,943,944,944,944,947,947,948,943,943,945,
-        945,947,951,950,954,957,958,960,961,958,957,960,962,966,966,963,
-        961,964,968,966,966,964,960,959,955,955,956,954,955,956,960,959,
-        956,951,947,946,948,947,945,941,938,938,935,935,933,933,933,935,
-        937,937,934,931,930,932,934,935,936,935,933,933,934,935,934,933,
-        929,921,910,904,907,917,930,952,990,1058,1131,1204,1267,1325,1361,
-        1364,1325,1236,1122,1019,951,919,909,910,928,948,957,955,945,942,
-        938,941,940,939,936,930,929,928,929,929,928,927,925,927,927,926,
-        928,926,927,928,930,929,927,926,926,926,929,928,930,928,926,927,
-        933,934,934,933,929,935,937,939,939,937,938,942,944,948,949,951,
-        953,957,961,965,966,970,972,976,981,983,988,990,992,998,1003,1006,
-        1010,1012,1013,1015,1019,1025,1026,1026,1027,1031,1032,1035,1036,
-        1031,1030,1033,1031,1032,1030,1025,1022,1018,1016,1013,1005,1003,
-        997,993,990,989,984,979,972,971,970,971,967,964,962,961,963,964,
-        961,957,955,959,958,959,958,955,957,957,958,957,957,954,956,957,
-        958,957,959,958,960,960,961,960,961,962,963,964,965,963,962,965,
-        965,964,966,967,967,965,966,967,968,968,967,965,967,967,966,968,
-        967,966,965,964]*4])))
+                'gain': 8800,
+                'signal': zlib.compress(bytearray(array.array('h',[(item-936)*16 for item in 
+        utils.single_pulse*10])))
             }
 
 class ExamList(MDBoxLayout):

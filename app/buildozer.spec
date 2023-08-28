@@ -47,7 +47,7 @@ requirements = python3,kivy==2.2.0,pillow,numpy,dateutil,sqlalchemy==1.4.40,sqla
 presplash.filename = assets/isotipo-padded.png
 
 # (str) Icon of the application
-#icon.filename = %(source.dir)s/data/icon.png
+icon.filename = assets/isotipo.png
 
 # (str) Supported orientation (one of landscape, sensorLandscape, portrait or all)
 orientation = portrait

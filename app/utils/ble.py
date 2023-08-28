@@ -21,7 +21,7 @@ class BleHandler(EventDispatcher):
     lead_count = NumericProperty()
     resolution = NumericProperty()
     fw_version = StringProperty("")
-    conv_factor = NumericProperty(1.0)
+    conv_factor = NumericProperty(8800.0)
     frame_handler = ObjectProperty()
     device = ObjectProperty()
     cmd = ObjectProperty()
@@ -43,7 +43,7 @@ class BleHandler(EventDispatcher):
             self.fw_version = str(value[6]) + '.' + str(value[7])
             self.conv_factor = struct.unpack('d', value[8:])[0]
             Logger.info(
-                f"OKDevice: FW=v{self.fw_version} LC={self.lead_count} BR={self.resolution} SR={self.sample_rate} SF={self.samples_per_frame} BL={self.battery_level} CV={self.conv_factor}"
+                f"OKDevice: FW=v{self.fw_version} LCnt={self.lead_count} BRes={self.resolution} SRte={self.sample_rate} SFrm={self.samples_per_frame} BLvl={self.battery_level} CFct={self.conv_factor}"
             )
 
         except IndexError as e:

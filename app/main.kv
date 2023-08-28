@@ -66,8 +66,6 @@ MDNavigationLayout:
                 size_hint: 1, 0.03
 
 
-            
-
         ToolbarScreen:
             name: "ekg_list_view"
             title: "Exámenes"
@@ -108,7 +106,7 @@ MDNavigationLayout:
                 app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
             ExamMetadataDetail:
                 id: exam_metadata
-                size_hint_y: 0.36
+                size_hint_y: 0.4
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
@@ -120,7 +118,7 @@ MDNavigationLayout:
                     width: self.parent.width
             MDBoxLayout:
                 orientation:'horizontal'
-                size_hint_y: 0.28
+                size_hint_y: 0.35
                 padding: "2dp"
                 spacing: "2dp"
                 MDLabel:
@@ -133,9 +131,10 @@ MDNavigationLayout:
                 MDLabel:
                     id: notes
                     md_bg_color: 1,1,1,0.94
+                    font_size: "12sp"
             MDBoxLayout:
                 orientation:'horizontal'
-                size_hint_y: 0.28
+                size_hint_y: 0.35
                 padding: "2dp"
                 spacing: "2dp"
                 MDLabel:
@@ -148,6 +147,7 @@ MDNavigationLayout:
                 MDLabel:
                     id: diagnostic
                     md_bg_color: 1,1,1,0.94
+                    font_size: "12sp"
 
 
         ToolbarScreen:
@@ -180,6 +180,7 @@ MDNavigationLayout:
                     height: self.parent.height
                     width: self.parent.width
                     sample_rate: app.ble.sample_rate
+                    gain: app.ble.conv_factor
             OKDevicePanel:
                 id: ok_device_panel
                 sample_rate: app.ble.sample_rate
@@ -188,6 +189,7 @@ MDNavigationLayout:
                 resolution: app.ble.resolution
                 fw_version: app.ble.fw_version
                 ble_state: app.ble.state
+
 
         ToolbarScreen:
             name: "patient_list_view"
@@ -209,6 +211,7 @@ MDNavigationLayout:
                 app.root.ids.patient_detail.populate(self.object_id)
             PatientDetail:
                 id: patient_detail
+                pos_hint: {'top': 0.0}
 
 
         ToolbarScreen:
@@ -260,6 +263,7 @@ MDNavigationLayout:
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
             OKHelpView:
                 id:help_view
+                        
                         
     MDNavigationDrawer:
         id: nav_drawer

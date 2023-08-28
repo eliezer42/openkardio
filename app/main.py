@@ -44,6 +44,7 @@ class OpenKardioApp(MDApp):
     def build(self):
         logging.basicConfig(format='%(asctime)s %(message)s')
         self.theme_cls.material_style = "M3"
+        self.icon = 'assets/isotipo-mini.png'
         
         if __name__ == '__main__':
             data_dir = getattr(self, 'user_data_dir')
@@ -117,7 +118,6 @@ class OpenKardioApp(MDApp):
                 samples = array.array('h', data).tolist()
                 self.root.ids.new_ekg.next_samples = samples
                 if len(self.root.ids.new_ekg.ekg_samples) >= self.ble.sample_rate*9.6:
-                        Logger.info("RIGHT BEFORE TOGGLE RECEPTION")
                         self.ble.transition(ble.ConnState.CONNECTED)
             except Exception as e:
                 Logger.error(f"Frame: Error while decoding frame.")
@@ -278,7 +278,7 @@ class OpenKardioApp(MDApp):
                         bpm = data.get('bpm'),
                         leads = data.get('leads'),
                         signal = bytes(data.get('signal')),
-                        gain = data.get('gain')
+                        gain = float(data.get('gain'))
                         )
                     self.session.add(ekg)
                     self.session.commit()
