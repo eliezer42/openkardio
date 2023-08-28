@@ -18,12 +18,12 @@
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text:"[color=#d35f5f][b]Open[/b][/color][color=#5f99d3][b]Kardio[/b][/color] es una plataforma de electrocardiografía digital que permite la toma exámenes cardíacos y el envío de estos a través de Internet para que sean evaluados de forma remota por un especialista, de tal forma que los pacientes no se vean en la necesidad de desplazarse mas alla de su centro de salud local para descartar padecimientos cardíacos."
+            text:"[color=#d35f5f][b]Open[/b][/color][color=#5f99d3][b]Kardio[/b][/color] es una plataforma de electrocardiografía digital que permite la toma exámenes cardíacos y el envío de estos a través de Internet para que sean evaluados de forma remota por un especialista. De esta forma se evita que los pacientes tengan que desplazarse mas allá de su centro de salud local para descartar padecimientos cardíacos."
         MDLabel:
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text:"El sistema esta compuesto por [b](a)[/b] una aplicacion disponible para dispositivos móviles Android y escritorios Windows; [b](b)[/b] un dispositivo electrónico que captura la señal electrocardiográfica y la envía a través de Bluetooth Low Energy (BLE); y [b](c)[/b] un servicio en la nube que actúa como backend de la solución."
+            text:"El sistema esta compuesto por [b](a)[/b] un dispositivo electrónico que captura la señal electrocardiográfica y la envía a través de Bluetooth Low Energy (BLE); [b](b)[/b] una aplicación disponible para dispositivos móviles Android y escritorios Windows, la cual recibe la señal electrocardiográfica, captura metadatos, procesa y visualiza los exámenes, además de enviar y recibir diagnósticos; y [b](c)[/b] un servicio en la nube que actúa como backend de la solución y como fronted alternativo para el envio de diagnósticos."
         Image:
             source: 'assets/diagram1.png'
             size: self.texture_size
@@ -33,7 +33,16 @@
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text:"La presente aplicación está estructurada en las siguientes secciones:\n    [b]Inicio[/b]\n    [b]Examenes[/b]\n    [b]Pacientes[/b]\n    [b]Configuracion[/b]\n    [b]Ayuda[/b]"
+            text:"La presente aplicación está estructurada en las siguientes secciones:\n    [b]Inicio:[/b] Muestra algunas estadísticas y notifica de exámenes nuevos.\n    [b]Examenes:[/b] En esta sección se listan los exámenes existentes y se pueden crear nuevos.\n    [b]Pacientes:[/b] Lista de pacientes registrados.\n    [b]Configuracion:[/b] Permite cambiar de usuario y modo de funcionamiento.\n    [b]Ayuda[/b]"
+        MDLabel:
+            text:"Configuración Inicial"
+            font_style:"H5"
+            size_hint: 1,None
+        MDLabel:
+            markup:True
+            adaptive_height:True
+            size_hint: 1,None
+            text:"Para configurar la aplicación por primera vez es necesario acceso a internet. Sin embargo, luego de eso la aplicación puede funcionar sin internet salvo cuando sea necesario enviar un examen guardado o diagnóstico. Por defecto, la aplicacion esta configurada en Modo [b]Centro de salud[/b] con ID de usuario [b]CS1[/b]. Puede cambiar a Modo [b]Hospital[/b] y de usuario en la sección de [b]Configuración[/b]."
         MDLabel:
             text:"Instrucciones de Uso"
             font_style:"H5"
@@ -47,12 +56,12 @@
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text:"2.Conecte el cable de electrodos al electrocardiografo."
+            text:"2.Conecte el cable de electrodos al electrocardiógrafo."
         MDLabel:
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text:"3. Coloque los electrodos al paciente segun la imagen y conecte los extremos del cable a cada electrodo segun el codigo de colores."
+            text:"3. Coloque los electrodos al paciente segun la imagen y conecte los extremos del cable a cada electrodo segun el código de colores."
         Image:
             source: 'assets/leads_placement.jpg'
             size: self.texture_size
@@ -62,32 +71,37 @@
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text: "4. Active el [b]Bluetooth[/b] de este dispositivo."
+            text: "4. Active el [b]Bluetooth[/b] de este dispositivo móvil."
         MDLabel:
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text: "5. Diríjase a la vista de Exámenes y presione el boton [b]+[/b] para agregar un nuevo examen." 
+            text: "5. Diríjase a la sección de [b]Exámenes[/b] y presione el ícono [b]+[/b] para agregar un nuevo examen." 
         MDLabel:
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text: "6. A continuación elija el paciente para el cual desea registrar un nuevo examen. En caso de ser uno nuevo ingrese los datos del nuevo paciente en la vista de Pacientes, al presionar el botón [b]+[/b]. Por ultimo regrese al paso 5."
+            text: "6. A continuación elija el paciente para el cual desea registrar un nuevo examen. En caso de ser uno nuevo ingrese los datos del nuevo paciente en la sección de [b]Pacientes[/b], al presionar el ícono [b]+[/b]. Por último regrese al paso 5."
         MDLabel:
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text: "7. Una vez en la vista [b]Nuevo EKG[/b] proceda a llenar a los campos de signos vitales y notas. A continuacion presione [b]CONECTAR[/b]. Una vez que este dispositivo se haya conectado al electrocardiografo, puede presionar [b]EMPEZAR[/b] para comenzar a capturar el EKG."
+            text: "7. Una vez en la sección [b]Nuevo EKG[/b] proceda a llenar a los campos de signos vitales y comentarios. A continuacion presione [b]CONECTAR[/b]. Una vez que este dispositivo se haya conectado al electrocardiografo, puede presionar [b]EMPEZAR[/b] para comenzar a capturar el EKG."
         MDLabel:
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text: "8. En caso de que necesite detener el examen puede presionar [b]DETENER[/b]. Para limpiar la grafica, presione el boton [b]RESET[/b] en la parte superior derecha."
+            text: "8. En caso de que necesite detener el examen puede presionar [b]DETENER[/b]. Para limpiar la gráfica, presione el boton [b]RESET[/b] en la parte superior derecha."
         MDLabel:
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text: "9. Si la toma del EKG fue satisfactoria, presione enviar, y seleccione un Hospital al cual desee enviar el EKG para su diagnostico."
+            text: "9. Si la toma del EKG fue satisfactoria, presione el ícono de enviar, y seleccione un Hospital al cual desee enviar el EKG para su diagnóstico."
+        MDLabel:
+            markup:True
+            adaptive_height:True
+            size_hint: 1,None
+            text: "10. En caso de que la aplicación esté en modo [b]Hospital[/b] no será posible grabar nuevos electrocardiogramas pero si puede recibir los enviados por los Centros de salud. Para ello diríjase a la sección de [b]Exámenes[/b] y seleccione un examen de la bandeja de [b]Pendientes[/b], luego presione en el ícono de envío y proceda a escribir el diagnóstico. Al finalizar presione [b]GUARDAR[/b]"
         MDLabel:
             text:"Acerca de"
             font_style:"H5"
@@ -96,7 +110,7 @@
             markup:True
             adaptive_height:True
             size_hint: 1,None
-            text:"[b]OpenKardio v0.1[/b]\nEsta aplicación es de código abierto como parte de un proyecto monográfico de la Universidad Nacional de Ingeniería de Nicaragua. El código fuente está disponible en el repositorio [u]https://github.com/eliezer42/openkardio[/u]. Para soporte escriba al correo openkardio@gmail.com"
+            text:"[b]OpenKardio v0.1[/b]\nEsta aplicación es de código abierto como parte de un proyecto monográfico de la Universidad Nacional de Ingeniería de Nicaragua. El código fuente está disponible en el repositorio\n[u]https://github.com/eliezer42/openkardio[/u].\nPara soporte escriba al correo openkardio@gmail.com"
         Image:
             source: 'assets/uni-mini-logo.png'
             size: self.texture_size

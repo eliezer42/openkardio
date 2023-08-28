@@ -22,6 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from kivy.core.window import Window
 from kivy.utils import platform
 from kivy.clock import Clock
+from kivy.base import EventLoop
 from os.path import join
 
 if platform != 'android':
@@ -69,7 +70,9 @@ class OpenKardioApp(MDApp):
 
             return Builder.load_file("kv/main.kv")
         
-    def on_start(self):
+    def on_start(self):          
+        # attaching keyboard hook when app starts
+        EventLoop.window.bind(on_keyboard=self.hook_keyboard)
         self.session = ldb.session_init(getattr(self, 'user_data_dir'))
         if self.session.query(ldb.Patient).first() is None:
                 patient1 = ldb.Patient(first_name="Pedro", last_name="Perez", sex="M", birth_date=date(1998, 3, 28), record="123-456-789", identification="123")
@@ -98,6 +101,12 @@ class OpenKardioApp(MDApp):
 
         Clock.schedule_once(lambda dt: self.populate_hospitals(), 5)
 
+    def hook_keyboard(self, window, key, *largs):
+          
+        # key == 27 means it is waiting for back button to be pressed
+        if key == 27:  
+            # return True means do nothing
+            return True
 
     def on_stop(self):
         self.running = False
