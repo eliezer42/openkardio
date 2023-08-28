@@ -35,12 +35,11 @@ function calculateAge(birthdate: Date): number {
   return yearsDiff;
 }
 
-function normalizeIntArray(array: Int16Array): Float32Array {
+function normalizeIntArray(array: Int16Array, gain: number, pixelsPerMv: number): Float32Array {
   const normalizedArray = new Float32Array(array.length);
-  const topOfScale = 26400;
 
   for (let i = 0; i < array.length; i++) {
-    normalizedArray[i] = (array[i]*400) / topOfScale;
+    normalizedArray[i] = (array[i]*pixelsPerMv) / gain;
   }
 
   return normalizedArray;
@@ -80,12 +79,20 @@ exports.sendNotificationOnCreation = functions.database
     const weight = caseData.weight_pd;
     const pressure = caseData.pressure;
     const bpm = caseData.bpm;
+    const signalGain = caseData.gain;
+    const notes = caseData.notes;
+
+    // Graph Constants
+    const graphMargin = 20;
+    const graphWidth = 2500;
+    const graphHeight = 400;
+    const pixelsPerSubdiv = 10;
 
     const compressedSignalBytes = caseData.signal;
     const compressedSignalBuffer = Buffer.from(compressedSignalBytes);
     const decompressedSignalBuffer = zlib.inflateSync(compressedSignalBuffer);
     const originalSignal = new Int16Array(decompressedSignalBuffer.buffer).slice(0, Math.trunc(decompressedSignalBuffer.length/2));
-    const normalizedSignal = normalizeIntArray(originalSignal);
+    const normalizedSignal = normalizeIntArray(originalSignal, signalGain, 10*pixelsPerSubdiv);
 
     console.log("Compressed bytes length:", compressedSignalBytes.length);
     console.log("Compressed buffer length:", compressedSignalBuffer.byteLength);
@@ -105,20 +112,20 @@ exports.sendNotificationOnCreation = functions.database
 
     ctx.strokeStyle = "rgba(220,153,153,0.9)";
 
-    for (let i = 0; i <= 250; i++) {
+    for (let i = 0; i <= Math.floor(graphWidth/pixelsPerSubdiv); i++) {
       // Vertical Lines
       ctx.beginPath();
-      ctx.lineWidth = i%5 == 0 ? 2 : 1;
-      ctx.moveTo(i*10+20, 20);
-      ctx.lineTo(i*10+20, 420);
+      ctx.lineWidth = i%5 == 0 ? 2 : 0.75;
+      ctx.moveTo(i*pixelsPerSubdiv+graphMargin, graphMargin);
+      ctx.lineTo(i*pixelsPerSubdiv+graphMargin, graphHeight + graphMargin);
       ctx.stroke();
     }
-    for (let i = 0; i <= 40; i++) {
+    for (let i = 0; i <= Math.floor(graphHeight/pixelsPerSubdiv); i++) {
       // Horizontal Lines
       ctx.beginPath();
-      ctx.lineWidth = i%5 == 0 ? 2 : 1;
-      ctx.moveTo(20, i*10+20);
-      ctx.lineTo(2520, i*10+20);
+      ctx.lineWidth = i%5 == 0 ? 2 : 0.75;
+      ctx.moveTo(graphMargin, i*pixelsPerSubdiv+graphMargin);
+      ctx.lineTo(graphWidth + graphMargin, i*pixelsPerSubdiv+graphMargin);
       ctx.stroke();
     }
 
@@ -127,10 +134,10 @@ exports.sendNotificationOnCreation = functions.database
     ctx.beginPath();
     ctx.moveTo(20, graphCanvas.height/2);
     for (let i = 0; i < 193; i++) {
-      ctx.lineTo(i * ((graphCanvas.width - 40) / (sampleRate*10)) + 20, i <= 38 || i > 96 ? graphCanvas.height/2 : graphCanvas.height/2 - 100);
+      ctx.lineTo(i * ((graphWidth) / (sampleRate*10)) + graphMargin, i <= 38 || i > 96 ? graphCanvas.height/2 : graphCanvas.height/2 - 10*pixelsPerSubdiv);
     }
     for (let i = 1; i < normalizedSignal.length; i++) {
-      ctx.lineTo(i * ((graphCanvas.width - 40) / (sampleRate*10)) + 20 + 100, graphCanvas.height - 20 - normalizedSignal[i]);
+      ctx.lineTo(i * ((graphCanvas.width - 40) / (sampleRate*10)) + 20 + 100, graphCanvas.height - 20 - (normalizedSignal[i] + 200));
     }
     ctx.stroke();
 
@@ -182,27 +189,27 @@ exports.sendNotificationOnCreation = functions.database
 
   <p><span style="font-family:Verdana,Geneva,sans-serif"><strong>DATOS DEL PACIENTE</strong></span></p>
 
-  <table border="1" cellpadding="1" cellspacing="1" style="width:438.6px">
+  <table border="1" cellpadding="1" cellspacing="1" style="width:450px">
   <tbody>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Unidad de Salud</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${origId}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Unidad de Salud</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${origId}</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Nombre del paciente</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientName}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Nombre del paciente</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${patientName}</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Edad</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientAge} años</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Edad</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${patientAge} años</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Expediente</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientRecord}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Expediente</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${patientRecord}</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Doc. Identidad</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${patientIdentification}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Doc. Identidad</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${patientIdentification}</span></td>
   </tr>
   </tbody>
   </table>
@@ -214,39 +221,41 @@ exports.sendNotificationOnCreation = functions.database
   <table border="1" cellpadding="1" cellspacing="1" style="width:438.6px">
   <tbody>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>ID del Caso</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${caseId}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>ID del Caso</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${caseId}</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Fecha y Hora</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${created}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Fecha y Hora</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${created}</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>SpO2</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${spo2.toString()} %</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>SpO2</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${spo2.toString()} %</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Peso</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${weight.toString()} lbs</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Peso</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${weight.toString()} lbs</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Presión</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${pressure}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Presión</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${pressure}</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Ritmo Cardiaco</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${bpm.toString()} bpm</span></td>
-  </tr>
-
-  <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Derivaciones</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${leads}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Ritmo Cardiaco</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${bpm.toString()} bpm</span></td>
   </tr>
   <tr>
-  <td style="width:129px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Tasa de muestreo</strong></span></td>
-  <td style="width:296px"><span style="font-family:Verdana,Geneva,sans-serif">${sampleRate.toString()} sps</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Derivaciones</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${leads}</span></td>
   </tr>
-
+  <tr>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Tasa de muestreo</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${sampleRate.toString()} sps</span></td>
+  </tr>
+  <tr>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Comentarios</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${notes}</span></td>
+  </tr>
   </tbody>
   </table>
 
@@ -287,8 +296,8 @@ exports.sendNotificationOnCreation = functions.database
   });
 
 // Firebase Cloud Function to handle diagnosis submission
-exports.submitDiagnosis = functions.https.onRequest((req, res) => {
-  cors({origin: true})(req, res, () => {
+exports.submitDiagnosis = functions.https.onRequest(async (req, res) => {
+  cors({origin: true})(req, res, async () => {
     const examId = req.body.examId;
     const diagnosis = req.body.diagnosis;
     const timestamp = generateTimestamp();
@@ -301,7 +310,8 @@ exports.submitDiagnosis = functions.https.onRequest((req, res) => {
     };
 
     // Update the diagnosis field in the Realtime Database
-    admin.database().ref(`/Cases/${examId}`).update(updateObj)
+    const examRef = admin.database().ref(`/Cases/${examId}`);
+    examRef.update(updateObj)
       .then(() => {
         res.status(200).send("Diagnosis submitted successfully");
       })
@@ -309,6 +319,46 @@ exports.submitDiagnosis = functions.https.onRequest((req, res) => {
         console.error("Error receiving diagnostic:", error);
         res.status(500).send("Error submitting diagnosis");
       });
+
+    try {
+      const origId = (await examRef.once("value")).val().origin_id;
+      const hcSnapshot = await admin.database().ref(`/HCenters/${origId}`).once("value");
+      const hcData = hcSnapshot.val();
+
+      if (hcData) {
+        const origEmail = hcData.email;
+        // Send email notification
+        const transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: functions.config().gmail.address,
+            pass: functions.config().gmail.password,
+          },
+        });
+
+        const htmlContent = `
+        <p><span style="font-family:Verdana,Geneva,sans-serif"><strong>DIAGNÓSTICO DEL EXAMEN ${examId}</strong></span></p>
+        <p>&nbsp;</p>
+        <p><span style="font-family:Verdana,Geneva,sans-serif">${diagnosis}</span></p>
+        <p>&nbsp;</p>
+        <p><span style="font-family:Verdana,Geneva,sans-serif">Recibido el ${timestamp}.</span></p>`;
+
+        const mailOptions = {
+          from: functions.config().gmail.address,
+          to: origEmail,
+          subject: `Nuevo Diagnóstico para ${origId}`,
+          html: htmlContent,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        console.log("Email sent successfully");
+      } else {
+        console.error("Health Center not found");
+      }
+    } catch (error) {
+      console.error("Error getting Health center:", error);
+    }
   });
 });
 
