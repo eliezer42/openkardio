@@ -85,7 +85,7 @@ exports.sendNotificationOnCreation = functions.database
     // Graph Constants
     const graphMargin = 20;
     const graphWidth = 2500;
-    const graphHeight = 400;
+    const graphHeight = 300;
     const pixelsPerSubdiv = 10;
 
     const compressedSignalBytes = caseData.signal;
@@ -104,10 +104,10 @@ exports.sendNotificationOnCreation = functions.database
     // console.log("Normalized Maximum:", Math.max(...normalizedSignal));
 
     // Create a canvas
-    const graphCanvas = canvas.createCanvas(2540, 440);
+    const graphCanvas = canvas.createCanvas(graphWidth + 2*graphMargin, graphHeight + 2*graphMargin);
     const ctx = graphCanvas.getContext("2d");
     ctx.fillStyle = "rgb(255,217,217)";
-    ctx.fillRect(0, 0, 2540, 440);
+    ctx.fillRect(0, 0, graphWidth + 2*graphMargin, graphHeight + 2*graphMargin);
     // Draw graph using basic functions
 
     ctx.strokeStyle = "rgba(220,153,153,0.9)";
@@ -137,7 +137,7 @@ exports.sendNotificationOnCreation = functions.database
       ctx.lineTo(i * ((graphWidth) / (sampleRate*10)) + graphMargin, i <= 38 || i > 96 ? graphCanvas.height/2 : graphCanvas.height/2 - 10*pixelsPerSubdiv);
     }
     for (let i = 1; i < normalizedSignal.length; i++) {
-      ctx.lineTo(i * ((graphCanvas.width - 40) / (sampleRate*10)) + 20 + 100, graphCanvas.height - 20 - (normalizedSignal[i] + 200));
+      ctx.lineTo(i * ((graphCanvas.width - 40) / (sampleRate*10)) + 20 + 100, graphCanvas.height - 20 - (normalizedSignal[i] + graphHeight/2));
     }
     ctx.stroke();
 
