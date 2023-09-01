@@ -58,8 +58,8 @@
 <ExamMetadataDetail>:
     orientation: 'vertical'
     adaptive_height: True
-    padding: dp(8)
-    spacing: dp(8)
+    padding: [dp(4), dp(16), dp(4), dp(16)]
+    spacing: dp(16)
     md_bg_color: "#f4dedc"
     MDLabel:
         text: root.title
@@ -112,8 +112,8 @@
 
 <ExamMetadataForm>:
     orientation: 'vertical'
-    padding: dp(16)
-    spacing: dp(16)
+    padding: dp(12)
+    spacing: dp(12)
     md_bg_color: "#f4dedc"
     adaptive_height: True
     MDLabel:
@@ -136,15 +136,16 @@
             icon_left: 'weight-pound'
             hint_text: "Peso (lb)"
             helper_text: "Ej.: 190"
-        MDTextField:
-            id: pressure
-            icon_left: 'gauge'
-            hint_text: "Presión"
-            helper_text: "Ej.: 120/80"
+    MDTextField:
+        id: pressure
+        icon_left: 'gauge'
+        hint_text: "Presión Arterial"
+        helper_text: "Ej.: 120/80"
     MDTextField:
         id: notes
         icon_left: 'comment-plus'
         hint_text: "Comentarios"
+        do_wrap: True
 
 <OKDevicePanel>:
     orientation: 'vertical'

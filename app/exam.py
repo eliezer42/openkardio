@@ -49,7 +49,7 @@ class Plot(Widget):
 
     def on_size(self,*args):
         try:
-            self.grid_y_divs = 8 if self.height > 480 else 6
+            self.grid_y_divs = 6
 
             self.y_subdiv_count = self.grid_y_divs*self.GRID_SUBDIVS
             self.subdiv_size = int((self.height - self.MARGINS)//(self.y_subdiv_count))

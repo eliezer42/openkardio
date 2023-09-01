@@ -42,7 +42,7 @@ class Patient(Person, Base):
 
     record = Column(String, default="")
     emergency_contact = Column(String, default="")
-    exams = relationship("Exam", back_populates='patient')
+    exams = relationship("Exam", back_populates='patient', cascade="all, delete-orphan")
 
 class Ekg(Base):
     __tablename__ = 'ekgs'

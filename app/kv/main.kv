@@ -106,10 +106,11 @@ MDNavigationLayout:
                 app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
             ExamMetadataDetail:
                 id: exam_metadata
-                size_hint_y: 0.4
+                size_hint_y: 0.35
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
+                size_hint_y: 0.45
                 Plot:
                     id: ekg_plot
                     size_hint_x: None
@@ -118,36 +119,36 @@ MDNavigationLayout:
                     width: self.parent.width
             MDBoxLayout:
                 orientation:'horizontal'
-                size_hint_y: 0.35
+                size_hint_y: 0.3
                 padding: "2dp"
-                spacing: "2dp"
+                spacing: "4dp"
                 MDLabel:
                     id: comment_label
                     font_style: "Subtitle2"
                     halign: "right"
-                    size_hint_x: 0.3
+                    size_hint_x: 0.32
                     theme_text_color: "Custom"
                     text_color: 0, 0, 0.9, 1
                 MDLabel:
                     id: notes
                     md_bg_color: 1,1,1,0.94
-                    font_size: "12sp"
+                    font_size: "15sp"
             MDBoxLayout:
                 orientation:'horizontal'
-                size_hint_y: 0.35
+                size_hint_y: 0.3
                 padding: "2dp"
                 spacing: "2dp"
                 MDLabel:
                     id: diagnosis_label
                     font_style: "Subtitle2"
                     halign: "right"
-                    size_hint_x: 0.3
+                    size_hint_x: 0.32
                     theme_text_color: "Custom"
                     text_color: 0.1, 0.7, 0.1, 1
                 MDLabel:
                     id: diagnostic
                     md_bg_color: 1,1,1,0.94
-                    font_size: "12sp"
+                    font_size: "15sp"
 
 
         ToolbarScreen:
@@ -170,9 +171,11 @@ MDNavigationLayout:
                 app.root.ids.ok_device_panel.duration = 10
             ExamMetadataForm:
                 id: new_exam_metadata
+                size_hint_y: 0.45
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
+                size_hint_y: 0.33
                 Plot:
                     id: new_ekg
                     size_hint_x: None
@@ -189,6 +192,7 @@ MDNavigationLayout:
                 resolution: app.ble.resolution
                 fw_version: app.ble.fw_version
                 ble_state: app.ble.state
+                size_hint_y: 0.27
 
 
         ToolbarScreen:
