@@ -92,7 +92,11 @@ class Plot(Widget):
 
             if self.peaks:
 
-                for peak in self.peaks:
+                for i, peak in enumerate(self.peaks):
+
+                    if i == 0:
+                        continue
+
                     x_peak = self.preamble.points[-2] + (peak/self.sample_rate)*self.subdiv_size/self.SEC_PER_SUBDIV
                     mylabel = CoreLabel(text=f"{int(400.0+peak*1000/self.sample_rate)} ms", font_size=dp(10), color=(0, 0, 0, 1))
                     mylabel.refresh()
@@ -159,7 +163,7 @@ class Plot(Widget):
         if len(self.ekg_samples):
             Logger.info(f"EKG: {len(self.ekg_samples)} samples")
             return {
-                'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array(self.ekg_samples),self.sample_rate))/self.sample_rate)),
+                'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array(self.ekg_samples),self.sample_rate)[1:])/self.sample_rate)),
                 'sample_rate': self.sample_rate,
                 'gain': self.app.ble.conv_factor,
                 'rpeaks': bytes(array.array('I',utils.christov_detector(self.ekg_samples,self.sample_rate))),
@@ -167,7 +171,7 @@ class Plot(Widget):
             }
         return {
                 'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array([item*16 for item in
-        utils.single_pulse*10])-936,self.sample_rate))/self.sample_rate)),
+        utils.single_pulse*10])-936,self.sample_rate)[1:])/self.sample_rate)),
                 'sample_rate': self.sample_rate,
                 'gain': 8800,
                 'rpeaks': bytes(array.array('I',utils.christov_detector([(item-936)*16 for item in 
