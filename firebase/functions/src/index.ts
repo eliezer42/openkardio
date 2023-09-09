@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /* eslint-disable require-jsdoc */
 /* eslint-disable max-len */
 import * as functions from "firebase-functions";
@@ -81,6 +82,7 @@ exports.sendNotificationOnCreation = functions.database
     const bpm = caseData.bpm;
     const signalGain = caseData.gain;
     const notes = caseData.notes;
+    const rPeaks = caseData.rpeaks;
 
     // Graph Constants
     const graphMargin = 20;
@@ -97,11 +99,12 @@ exports.sendNotificationOnCreation = functions.database
     console.log("Compressed bytes length:", compressedSignalBytes.length);
     console.log("Compressed buffer length:", compressedSignalBuffer.byteLength);
     console.log("Decompressed length:", decompressedSignalBuffer.buffer.byteLength);
-    console.log("Original length:", new Int16Array(decompressedSignalBuffer.buffer));
+    // console.log("Original length:", new Int16Array(decompressedSignalBuffer.buffer));
     // console.log("Original Minimum:", Math.min(...originalSignal));
     // console.log("Original Maximum:", Math.max(...originalSignal));
     // console.log("Normalized Minimum:", Math.min(...normalizedSignal));
     // console.log("Normalized Maximum:", Math.max(...normalizedSignal));
+    console.log("Peaks:", rPeaks);
 
     // Create a canvas
     const graphCanvas = canvas.createCanvas(graphWidth + 2*graphMargin, graphHeight + 2*graphMargin);
@@ -129,6 +132,18 @@ exports.sendNotificationOnCreation = functions.database
       ctx.stroke();
     }
 
+    ctx.strokeStyle = "rgba(25,25,25,0.3)";
+    ctx.fillStyle = "rgb(0,0,0)";
+    ctx.font = "11pt sans-serif";
+    for (let i = 1; i < rPeaks.length; i++) {
+      ctx.beginPath();
+      ctx.lineWidth = 3;
+      ctx.moveTo(((rPeaks[i] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphMargin);
+      ctx.lineTo(((rPeaks[i] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphHeight + graphMargin);
+      ctx.stroke();
+      ctx.fillText(`${Math.floor(rPeaks[i]*1000/sampleRate + 400)} ms`, (rPeaks[i] + 193)*(graphCanvas.width - 40) / (sampleRate*10.0), graphCanvas.height - 4);
+    }
+
     ctx.strokeStyle = "black";
     ctx.lineWidth = 1.3;
     ctx.beginPath();
@@ -143,8 +158,8 @@ exports.sendNotificationOnCreation = functions.database
 
     ctx.fillStyle = "rgb(0,0,0)";
     ctx.font = "11pt sans-serif";
-    ctx.fillText(`Paciente: ${patientName}`, 20, 16);
-    ctx.fillText(`0.2 s/div - 0.5 mV/div  |  Caso #${caseId}  |  Fecha: ${created}`, 20, graphCanvas.height - 4);
+    ctx.fillText(`Paciente: ${patientName} |  Caso #${caseId}  |  Fecha: ${created}`, 20, 16);
+    ctx.fillText("0.2 s/div - 0.5 mV/div", 20, graphCanvas.height - 4);
 
     // Convert canvas to PNG buffer
     const graphImageBuffer = graphCanvas.toBuffer();

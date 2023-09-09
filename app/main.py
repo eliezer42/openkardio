@@ -207,6 +207,7 @@ class OpenKardioApp(MDApp):
                         "bpm":int(case_dict.get('bpm')),
                         "sample_rate":int(case_dict.get('sample_rate')),
                         "gain":float(case_dict.get('gain')),
+                        "rpeaks":bytes(array.array('I',list(case_dict.get('rpeaks')))),
                         "signal":bytes(case_dict.get('signal'))
                     }
                     new_ekg = ldb.Ekg(**ekg)
@@ -303,7 +304,8 @@ class OpenKardioApp(MDApp):
                         bpm = data.get('bpm'),
                         leads = data.get('leads'),
                         signal = bytes(data.get('signal')),
-                        gain = float(data.get('gain'))
+                        gain = float(data.get('gain')),
+                        rpeaks = bytes(array.array('I',list(data.get('rpeaks'))))
                         )
                     self.session.add(ekg)
                     self.session.commit()
@@ -512,6 +514,7 @@ class OpenKardioApp(MDApp):
                         'bpm':exam.ekg.bpm,
                         'leads':exam.ekg.leads,
                         'gain':exam.ekg.gain,
+                        'rpeaks':array.array('I',exam.ekg.rpeaks).tolist(),
                         'signal':list(exam.ekg.signal),
                         'notes':exam.notes,
                         'diagnostic':exam.diagnostic

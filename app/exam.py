@@ -162,6 +162,7 @@ class Plot(Widget):
                 'bpm': round(60/np.average(np.diff(utils.christov_detector(np.array(self.ekg_samples),self.sample_rate))/self.sample_rate)),
                 'sample_rate': self.sample_rate,
                 'gain': self.app.ble.conv_factor,
+                'rpeaks': bytes(array.array('I',utils.christov_detector(self.ekg_samples,self.sample_rate))),
                 'signal': zlib.compress(bytearray(array.array('h',list(self.ekg_samples)[:int(self.sample_rate*9.6)])))
             }
         return {
@@ -169,6 +170,8 @@ class Plot(Widget):
         utils.single_pulse*10])-936,self.sample_rate))/self.sample_rate)),
                 'sample_rate': self.sample_rate,
                 'gain': 8800,
+                'rpeaks': bytes(array.array('I',utils.christov_detector([(item-936)*16 for item in 
+        utils.single_pulse*10],self.sample_rate))),
                 'signal': zlib.compress(bytearray(array.array('h',[(item-936)*16 for item in 
         utils.single_pulse*10])))
             }
