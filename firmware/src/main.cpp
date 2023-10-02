@@ -43,6 +43,10 @@ int byte_count = 0;
 sample ekg_sample;
 uint8_t sample_buffer[BUFFER_LENGTH];
 int16_t signal_offset = 0;
+int16_t raw_sample = 0;
+int16_t max_raw_sample = 0x8000;
+int16_t min_raw_sample = 0x7fff;
+
 // Device info
 info device_info = {
   100,
@@ -52,7 +56,7 @@ info device_info = {
   ADC_RESOLUTION,
   FIRMWARE_MAJOR_VERSION,
   FIRMWARE_MINOR_VERSION,
-  FRONTEND_GAIN*ADC_STEPS_PER_V,
+  FRONTEND_GAIN*ADC_GAIN,
 };
 bool dev_connected = false;
 bool exam_running = false;
@@ -63,13 +67,7 @@ void adc_setup(void){
   adc_connected = ADS.begin();
   ADS.setWireClock(400000U);
   ADS.setGain(1);     // 4.096 volt max range
-  ADS.setDataRate(6); // 2.25 ms per conversion
-  
-  // set the thresholds to Trigger RDY pin
-  ADS.setComparatorThresholdLow(0x0000);
-  ADS.setComparatorThresholdHigh(0x0200);
-  ADS.setComparatorQueConvert(0);             // enable RDY pin !!
-  ADS.setComparatorLatch(0);
+  ADS.setDataRate(7); // 1.16 ms per conversion
 }
 // Ticker declarations
 Ticker led_blinker;
@@ -100,11 +98,13 @@ void on_conn_exit(void){
   digitalWrite(STAT_LED_PIN, LOW);
 }
 void state_send_cb(){
-  uint16_t newSample = 0;
+  int16_t newSample = 0;
   if(machine.executeOnce){
     byte_count = 0;
     prebuffer_counter = 0;
-    signal_offset = ADS.readADC(0)>1;
+    max_raw_sample = 0x800;
+    min_raw_sample = 0x7fff;
+    signal_offset = ADS.readADC(0)>>1;
     timerAlarmEnable(sampling_clock);
     digitalWrite(STAT_LED_PIN, HIGH);
     if(!adc_connected){
@@ -115,7 +115,10 @@ void state_send_cb(){
     Serial.println("State: SEND");
   }
   if(request){
-    newSample = ADS.readADC(1)-signal_offset;
+    raw_sample = ADS.readADC(1);
+    max_raw_sample = max(raw_sample,max_raw_sample);
+    min_raw_sample = min(raw_sample, min_raw_sample);
+    newSample = raw_sample-signal_offset;
     ekg_sample.raw = filter(newSample);
     // if (prebuffer_counter < lpfilter_length){
     //   ekg_sample.raw = 13200;
@@ -149,7 +152,16 @@ void state_send_cb(){
 void on_send_exit(void){
   timerAlarmDisable(sampling_clock);
   digitalWrite(STAT_LED_PIN, LOW);
+  Serial.println("-----");
+  Serial.print("RAW MAX: ");
+  Serial.println(max_raw_sample);
+  Serial.print("RAW MIN: ");
+  Serial.println(min_raw_sample);
+  Serial.print("OFFSET: ");
+  Serial.println(signal_offset);
+  Serial.println("-----");
 }
+
 State* IDLE = machine.addState(&state_idle_cb);
 State* CONN = machine.addState(&state_conn_cb);
 State* SEND = machine.addState(&state_send_cb);
@@ -202,7 +214,11 @@ bool send_to_idle(){
 }
 
 bool send_to_conn(){
-  return !exam_running;
+  if(!exam_running){
+    on_send_exit();
+    return true;
+  }
+  return false;
 }
 
 void sm_setup(void){
@@ -240,12 +256,6 @@ class OKCtrlCallbacks: public BLECharacteristicCallbacks {
       break;
       case 0x11:
       bFilterActive = true;
-      break;
-      case 0xA1:
-      device_info.sample_rate = pData[PAYLOAD]*10;
-      break;
-      case 0xA2:
-      device_info.samples_per_frame = pData[PAYLOAD];
       break;
       case 0xFF:
       if(machine.isInState(SEND)) exam_running = false;

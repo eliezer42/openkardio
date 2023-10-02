@@ -21,8 +21,8 @@
 #define STAT_LED_PIN 4
 
 #define ADC_RESOLUTION 16
-#define ADC_STEPS_PER_V 7999.756
-#define FRONTEND_GAIN 1100.0
+#define ADC_GAIN 8.0 // Steps/mV
+#define FRONTEND_GAIN 1100.0 // mV/mV
 #define FRONTEND_LEADS 1
 
 #define EKG_SAMPLE_RATE 480                   // SPS Multiples of 10 is recomended
