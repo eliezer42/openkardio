@@ -25,6 +25,10 @@ hw_timer_t *sampling_clock = NULL;
 volatile bool request = false;
 volatile long tic, toc = 0L;
 volatile long prebuffer_counter = 0;
+long sample_times[5000] = {0};
+long max_time = 0;
+long min_time = 0x7FFFFFFF;
+int frame_counter = 0;
 
 // Filter reference
 lpfilterType *pFilter = lpfilter_create();
@@ -44,8 +48,6 @@ sample ekg_sample;
 uint8_t sample_buffer[BUFFER_LENGTH];
 int16_t signal_offset = 0;
 int16_t raw_sample = 0;
-int16_t max_raw_sample = 0x8000;
-int16_t min_raw_sample = 0x7fff;
 
 // Device info
 info device_info = {
@@ -61,6 +63,7 @@ info device_info = {
 bool dev_connected = false;
 bool exam_running = false;
 bool adc_connected = false;
+
 //ADS declaration and setup definition
 ADS1115 ADS(0x48);
 void adc_setup(void){
@@ -69,6 +72,7 @@ void adc_setup(void){
   ADS.setGain(1);     // 4.096 volt max range
   ADS.setDataRate(7); // 1.16 ms per conversion
 }
+
 // Ticker declarations
 Ticker led_blinker;
 Ticker batt_monitor;
@@ -78,6 +82,7 @@ void blink(int pattern) {
   digitalWrite(STAT_LED_PIN, (pattern>>counter++)&0x01);
   if(counter>15) counter = 0;
 }
+
 // FSM definitions and flags
 StateMachine machine = StateMachine();
 void state_idle_cb(void){
@@ -102,8 +107,10 @@ void state_send_cb(){
   if(machine.executeOnce){
     byte_count = 0;
     prebuffer_counter = 0;
-    max_raw_sample = 0x800;
-    min_raw_sample = 0x7fff;
+    memset(sample_times,0,sizeof(sample_times));
+    frame_counter = 0;
+    max_time = 0;
+    min_time = 0x7FFFFFFF;
     signal_offset = ADS.readADC(0)>>1;
     timerAlarmEnable(sampling_clock);
     digitalWrite(STAT_LED_PIN, HIGH);
@@ -115,26 +122,28 @@ void state_send_cb(){
     Serial.println("State: SEND");
   }
   if(request){
+    
     raw_sample = ADS.readADC(1);
-    max_raw_sample = max(raw_sample,max_raw_sample);
-    min_raw_sample = min(raw_sample, min_raw_sample);
     newSample = raw_sample-signal_offset;
+    
     ekg_sample.raw = filter(newSample);
-    // if (prebuffer_counter < lpfilter_length){
-    //   ekg_sample.raw = 13200;
-    // } 
+
     sample_buffer[byte_count++] = ekg_sample.bytes[0];
     sample_buffer[byte_count++] = ekg_sample.bytes[1];
     request = false;
-    toc = micros();
-    Serial.println(ekg_sample.raw);
-    // Serial.print(toc-tic);
-    // Serial.print(",");
+
     if(byte_count/2 == SAMPLES_PER_FRAME){
-      tic = micros();
       if (prebuffer_counter > lpfilter_length){
+        tic = micros();
         OKDataCharacteristic.setValue(sample_buffer,byte_count);
         OKDataCharacteristic.notify();
+        toc = micros();
+
+        frame_counter++;
+
+        sample_times[frame_counter-1] = toc - tic;
+        max_time = max(max_time, sample_times[frame_counter-1]);
+        min_time = min(min_time, sample_times[frame_counter-1]);
       }
       // for(int i = 0; i < byte_count; i++){
       //   Serial.print(((uint16_t)sample_buffer[i] | (uint16_t)sample_buffer[++i]<<8)/ADC_STEPS_PER_V);
@@ -142,23 +151,45 @@ void state_send_cb(){
       // }
       // Serial.println();
       byte_count = 0;
-      toc = micros();
-      // Serial.print(toc-tic);
-      // Serial.println();
     }
   }   
 }
 
 void on_send_exit(void){
+  long sum = 0;
+  double average = 0;
+
   timerAlarmDisable(sampling_clock);
   digitalWrite(STAT_LED_PIN, LOW);
-  Serial.println("-----");
-  Serial.print("RAW MAX: ");
-  Serial.println(max_raw_sample);
-  Serial.print("RAW MIN: ");
-  Serial.println(min_raw_sample);
-  Serial.print("OFFSET: ");
-  Serial.println(signal_offset);
+  
+  if (frame_counter <= 5000 && frame_counter > 0){
+    for (int i = 0; i < frame_counter; i++) {
+        sum += sample_times[i];
+    }
+    average = (double)sum / frame_counter;
+    double squaredDifferencesSum = 0.0;
+
+    for (int i = 0; i < frame_counter; i++) {
+        double difference = sample_times[i] - average;
+        squaredDifferencesSum += difference * difference;
+    }
+
+    double variance = squaredDifferencesSum / (frame_counter);
+    double sampleStdDeviation = sqrt(variance);
+
+    Serial.println("-----");
+    Serial.print("AVG: ");
+    Serial.println(average);
+    Serial.print("MAX: ");
+    Serial.println(max_time);
+    Serial.print("MIN: ");
+    Serial.println(min_time);
+    Serial.print("STD: ");
+    Serial.println(sampleStdDeviation);
+  }
+  else {
+    Serial.println("There was a problem.");
+  }
   Serial.println("-----");
 }
 
@@ -169,13 +200,12 @@ State* SEND = machine.addState(&state_send_cb);
 void IRAM_ATTR onSamplingClock(){
     prebuffer_counter++;
     request = true;
-    tic = micros();
 }
 
 void timer_setup(void){
-  sampling_clock = timerBegin(0, 80, true);
+  sampling_clock = timerBegin(0, 8, true);
   timerAttachInterrupt(sampling_clock, &onSamplingClock, true);
-  timerAlarmWrite(sampling_clock, (uint64_t)1000000/EKG_SAMPLE_RATE, true);
+  timerAlarmWrite(sampling_clock, (uint64_t)10000000/EKG_SAMPLE_RATE, true);
 }
 
 void measure_batt(void){
@@ -297,6 +327,8 @@ void setup() {
   Serial.begin(115200);
   pinMode(STAT_LED_PIN, OUTPUT);
   pinMode(PUSH_BTN_PIN, INPUT_PULLUP);
+  pinMode(5,OUTPUT);
+  digitalWrite(5,HIGH);
   lpfilter_init(pFilter);
   timer_setup();
   adc_setup();
