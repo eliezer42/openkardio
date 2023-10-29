@@ -93,13 +93,16 @@ class PatientForm(MDBoxLayout):
 
     def save_form(self):
         patient_data = {}
-        Logger.debug("Date:" + self.ids.birth_date.text)
-        self.ids.birth_date.value = datetime.strptime(self.ids.birth_date.text,"%d/%m/%Y").date()
-        for field in self.ids.keys():
-            patient_data[field] = self.ids[field].value
-        new_patient = ldb.Patient(**patient_data)
-        app_session = MDApp.get_running_app().session
-        app_session.add(new_patient)
-        app_session.commit()
-        Logger.warning('New Patient ID is %s', new_patient.id)
-        return new_patient.id
+        try:
+            self.ids.birth_date.value = datetime.strptime(self.ids.birth_date.text,"%d/%m/%Y").date()
+            for field in self.ids.keys():
+                patient_data[field] = self.ids[field].value
+            new_patient = ldb.Patient(**patient_data)
+            app_session = MDApp.get_running_app().session
+            app_session.add(new_patient)
+            app_session.commit()
+            Logger.warning('New Patient ID is %s', new_patient.id)
+            return new_patient.id
+        except Exception as e:
+            toast("Hubo un problema. Revise los datos.")
+            return 0

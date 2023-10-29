@@ -98,7 +98,7 @@ MDNavigationLayout:
 
         ToolbarScreen:
             name: "ekg_detail_view"
-            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)]]
+            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['content-copy', lambda x: app.copy_exam(self.object_id)]]
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
             on_pre_enter:
                 app.root.ids.ekg_plot.reset()
@@ -106,11 +106,11 @@ MDNavigationLayout:
                 app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
             ExamMetadataDetail:
                 id: exam_metadata
-                size_hint_y: 0.35
+                size_hint_y: 0.36
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
-                size_hint_y: 0.45
+                size_hint_y: 0.42
                 Plot:
                     id: ekg_plot
                     size_hint_x: None
@@ -126,7 +126,7 @@ MDNavigationLayout:
                     id: comment_label
                     font_style: "Subtitle2"
                     halign: "right"
-                    size_hint_x: 0.32
+                    size_hint_x: 0.33
                     theme_text_color: "Custom"
                     text_color: 0, 0, 0.9, 1
                 MDLabel:
@@ -164,7 +164,7 @@ MDNavigationLayout:
             name: "ekg_create_view"
             title: "Nuevo EKG"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
-            right_items: [['content-save', lambda _: app.save_exam()],['autorenew',lambda _: app.root.ids.new_ekg.reset()]]
+            right_items: [['content-save', lambda _: app.save_exam()]]
             on_pre_enter:
                 app.root.ids.new_exam_metadata.populate(self.object_id)
                 app.root.ids.new_ekg.reset()
@@ -208,7 +208,7 @@ MDNavigationLayout:
 
         ToolbarScreen:
             name: "patient_detail_view"
-            title: "View Patient"
+            title: "Detalle de paciente"
             action_items: [['arrow-left', lambda _ : app.go_back("patient_list_view")]]
             right_items: [['delete', lambda _: app.delete_patient(self.object_id)]]
             on_pre_enter:

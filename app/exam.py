@@ -41,8 +41,8 @@ class Plot(Widget):
         self.peaks = []
         with self.canvas.after:
             Color(0, 0, 0, 1)
-            self.preamble = Line(points=[], width = 1.25 if platform == 'android' else 1)
-            self.line = Line(points=[], width = 1.25 if platform == 'android' else 1)
+            self.preamble = Line(points=[], width = 1.75 if platform == 'android' else 1)
+            self.line = Line(points=[], width = 1.75 if platform == 'android' else 1)
 
     def on_sample_rate(self, instance, value):
         self.time_generator = utils.time_gen(self.sample_rate)

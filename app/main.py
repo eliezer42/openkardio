@@ -19,11 +19,13 @@ from kivymd.toast import toast
 from navdrawer import ItemDrawer
 from okwidgets import OKHospitalSelectorItem, OKCommentWidget
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import make_transient
 from kivy.core.window import Window
 from kivy.utils import platform
 from kivy.clock import Clock
 from kivy.base import EventLoop
 from os.path import join
+from time import perf_counter
 
 if platform != 'android':
     Window.size = (800, 800)
@@ -336,8 +338,6 @@ class OpenKardioApp(MDApp):
                         local_exam.diagnosed = datetime.fromisoformat(data.get('diagnosed'))
                         local_exam.modified = datetime.fromisoformat(data.get('modified'))
                         self.session.commit()
-                    
-
 
         except SQLAlchemyError as e:
             Logger.error(e)
@@ -444,13 +444,22 @@ class OpenKardioApp(MDApp):
 
                 save()
                 
-            
-
         except Exception as e:
             Logger.error(e)
             self.session.rollback()
 
-    def send_exam(self, exam_id:ldb.Exam):
+    def copy_exam(self, exam_id):
+        exam = self.session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
+        make_transient(exam)
+        exam.id = None
+        exam.global_id = None
+        exam.sent = None
+        exam.status = "GUARDADO"
+        self.session.add(exam)
+        self.session.commit()
+        Logger.info(f"COPY: Exam {exam.id} with status {exam.status}")
+
+    def send_exam(self, exam_id):
             
         exam = self.session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
 
@@ -542,7 +551,10 @@ class OpenKardioApp(MDApp):
                 self.session.rollback()
 
         def send_callback(global_id):
+            tic = perf_counter()
             remote_id = send_to_firebase(global_id)
+            toc = perf_counter()
+            Logger.info(f"[Send] Time elapsed: {toc - tic} s")
             if remote_id is not None:
                 self.dialog.dismiss()
                 self.root.ids.screen_manager.get_screen("ekg_detail_view").title = exam.name
@@ -552,7 +564,6 @@ class OpenKardioApp(MDApp):
                 Logger.debug(f"Remote ID:{remote_id}")
                 return
             self.dialog.dismiss()
-            
 
         if "GUARDADO" != exam.status and self.store['app']['mode'] == 'C':
             toast(f"Este examen ya fue enviado.")
@@ -692,15 +703,10 @@ class OpenKardioApp(MDApp):
         self.root.ids["start_patients"].add_bar("FEMENINO","#d35f5f",self.session.query(ldb.Patient).filter(ldb.Patient.sex == "F").count()/max(patient_count,1))
         self.root.ids["start_patients"].add_bar("MASCULINO","#5f99d3",self.session.query(ldb.Patient).filter(ldb.Patient.sex == "M").count()/max(patient_count,1))
 
-
     def refresh_home(self):
         self.download_cases()
         self.populate_hospitals()
         self.populate_start()  
-
-    def validate_user(self,username):
-        pass
-
 
 async def main(app):
     await asyncio.gather(app.async_run("asyncio"), app.ble.connection_handler())

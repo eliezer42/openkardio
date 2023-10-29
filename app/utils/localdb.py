@@ -1,9 +1,8 @@
-from kivy.logger import Logger
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, LargeBinary, Float, DateTime, Date
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy_utils import create_database, database_exists
-from datetime import date, datetime
+from datetime import date
 from os.path import join
 
 Base = declarative_base()
