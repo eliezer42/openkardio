@@ -1,5 +1,7 @@
-#:kivy 2.1.0
+#:kivy 2.2.0
 #:import * patient
+#:import * okwidgets
+#:import * exam
 
 <PatientList>:
     orientation: 'vertical'
@@ -29,17 +31,16 @@
             
 <PatientDetail>:
     orientation: 'vertical'
-    adaptive_height: True
     padding: "8dp"
-    spacing: "8dp"
-    MDBoxLayout:
+    spacing: "16dp"
+    MDCard:
         orientation: "vertical"
-        padding: "8dp"
-        spacing: "8dp"
-        size_hint: 0.9, 0.45
-        pos_hint: {"center_x": .5, "center_y": .5}
-        md_bg_color: 0.2, 0.1, 0.5, 0.8
-        border_radius: "8dp"
+        padding: dp(12)
+        spacing: dp(16)
+        style: "filled"
+        md_bg_color: "#f6eeee"
+        shadow_offset: (0, -1)
+        line_color: (0.2, 0.2, 0.2, 0.8)
         MDLabel:
             text: "Información General"
             theme_text_color: "Secondary"
@@ -49,42 +50,58 @@
         MDBoxLayout:
             orientation: "horizontal"
             adaptive_height: True
-            padding: "8dp"
-            spacing: "8dp"
+            padding: dp(8)
+            spacing: dp(12)
             MDIcon:
                 halign: "center"
                 icon: root.sex_icon
                 size_hint: 0.2, None
-                height: "64dp"
+                height: "36dp"
             MDLabel:
                 id: name
+                markup:True
                 size_hint_y: 1
-                font_style: "Subtitle2"
+                font_style: "Subtitle1"
                 valign: "center"
                 halign: "left"
         MDSeparator:
             height: "1dp"
         MDLabel:
             id: age
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDLabel:
             id: identification
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDLabel:
             id: record
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDLabel:
             id: address
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
         MDLabel:
             id: contact
+            markup:True
             size_hint_y: None
             height: self.texture_size[1]
-    Widget:
+        MDSeparator:
+            height: "2dp"
+        MDLabel:
+            text: "Examenes recientes"
+            theme_text_color: "Secondary"
+            font_style: "H6"
+            size_hint_y: None
+            height: self.texture_size[1]
+        MDList:
+            id:exams
+        Widget:
 
 <FormField>:
     orientation: 'horizontal'
@@ -100,8 +117,8 @@
 
 <PatientForm>:
     orientation: 'vertical'
-    padding: "8dp"
-    spacing: "6dp"
+    padding: "2dp"
+    spacing: "12dp"
     adaptive_height: True
     FormField:
         id: first_name
@@ -156,7 +173,7 @@
         label: "Sexo:"
         MDTextField:
             text: self.parent.text
-            hint_text: "Seleccione el sexo presionando aquí"
+            hint_text: "Seleccione el sexo del paciente"
             error: self.parent.error
             helper_text_mode: "on_error"
             helper_text: "Requerido"
@@ -204,10 +221,11 @@
         spacing: "8dp"
         Widget:
         MDFlatButton:
-            text: "GUARDAR"
-            on_release: 
-                app.root.ids.screen_manager.get_screen("patient_detail_view").object_id = root.save_form()
-                app.root.ids.screen_manager.current = "patient_detail_view"
-        MDRaisedButton:
             text: "CANCELAR"
             on_release: app.go_back("patient_list_view")
+        MDRaisedButton:
+            text: "GUARDAR"
+            on_release:
+                app.root.ids.screen_manager.get_screen("patient_detail_view").object_id = root.save_form()
+                if app.root.ids.screen_manager.get_screen("patient_detail_view").object_id: app.root.ids.screen_manager.current = "patient_detail_view"
+        

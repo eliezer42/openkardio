@@ -12,6 +12,10 @@
 *.json
 *.csv
 *.xlsx
+!*package.json
+!*firebase.json
+!*package-lock.json
+!*tsconfig.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

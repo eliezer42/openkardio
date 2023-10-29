@@ -1,66 +1,116 @@
-#:kivy 2.1.0
+#:kivy 2.2.0
 #:include kv/exam.kv
 #:include kv/navdrawer.kv
 #:include kv/okwidgets.kv
 #:include kv/patient.kv
 #:include kv/toolbarscreen.kv
+#:include kv/help.kv
 
 MDNavigationLayout:
+         
     ScreenManager:
         id: screen_manager
-
-
+            
         ToolbarScreen:
             name: "homescreen"
-            title: "OpenKardio"
+            title: "Inicio"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            right_items: [['refresh-circle',lambda _: app.retrieve_foreign_cases()]]
+            right_items: [['refresh-circle',lambda _: app.refresh_home()]]
+            on_enter: app.populate_start()
+
+            Image:
+                source: 'assets/imagotipo.png'
+                size: self.texture_size
+                fit_mode: "contain"
+                size_hint: 1, 0.15
             MDLabel:
-                id: out
+                id: info
                 halign: "center"
+                font_style: "Subtitle2"
+                size_hint: 1, 0.07
+                canvas.before:
+                    Color:
+                        rgba: .85,.83,.9,.9
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [dp(16)]
+
+            SummaryCard:
+                id: start_exams
+                icon: "clipboard-text-outline"
+                text: "Exámenes"
+                label: "Realizados"
+                size_hint: 1, 0.38
+                
+            SummaryCard:
+                id: start_patients
+                icon: "account-group"
+                text: "Pacientes"
+                label: "Registrados"
+                size_hint: 1, 0.32
+                
             MDLabel:
-                id: bt_out
+                text: "Universidad Nacional de Ingeniería"
+                bold: True
                 halign: "center"
-            MDRaisedButton:
-                text: "Create Random Object"
-            MDRaisedButton:
-                text: "Connect to OKDevice"
-                on_release: 
-                    app.running = True
-                    print('True')
-            MDRaisedButton:
-                text: "Disconnect from OKDevice"
-                on_release: 
-                    app.running = False
-                    print('False')
+                font_style: "H5"
+                color: "grey"
+                size_hint: 1, 0.05
+
+            MDLabel:
+                text: "Nicaragua, 2023"
+                halign: "center"
+                font_style: "H6"
+                color: "grey"
+                size_hint: 1, 0.03
 
 
         ToolbarScreen:
             name: "ekg_list_view"
             title: "Exámenes"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-            right_items: [['plus-box', lambda _: app.go_to("select_patient_view")]]
+            right_items: [['plus-box', lambda _: app.try_exam_creation()],['refresh-circle',lambda _: app.download_cases()]]
             on_enter:
-                app.retrieve_own_cases()
-                app.root.ids.exam_list.populate()
+                app.root.ids.pending.badge_icon = app.root.ids.exam_pending_list.populate("",False,False)
+                app.root.ids.done.badge_icon = app.root.ids.exam_done_list.populate("",False,True)
 
-            ExamList:
-                id: exam_list
+            MDBottomNavigation:
+
+                MDBottomNavigationItem:
+                    id: pending
+                    name: 'screen 1'
+                    text: 'Pendiente'
+                    icon: 'inbox-full'
+
+                    ExamList:
+                        id: exam_pending_list
+                
+                MDBottomNavigationItem:
+                    id: done
+                    name: 'screen 2'
+                    text: 'Diagnosticado'
+                    icon: 'check-bold'
+
+                    ExamList:
+                        id: exam_done_list
 
 
         ToolbarScreen:
             name: "ekg_detail_view"
-            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['refresh-circle', lambda _: app.retrieve_own_cases()]]
-            title: "View ekg"
+            right_items: [['delete',lambda x: app.delete_exam(self.object_id)],['send', lambda x: app.send_exam(self.object_id)],['content-copy', lambda x: app.copy_exam(self.object_id)]]
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
+            on_pre_enter:
+                app.root.ids.ekg_plot.reset()
             on_enter:
                 app.root.ids.ekg_plot.populate(app.root.ids.exam_metadata.populate(self.object_id))
             ExamMetadataDetail:
                 id: exam_metadata
-                size_hint_y: 0.35
+                size_hint_y: 0.36
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
+                size_hint_y: 0.42
                 Plot:
                     id: ekg_plot
                     size_hint_x: None
@@ -69,34 +119,36 @@ MDNavigationLayout:
                     width: self.parent.width
             MDBoxLayout:
                 orientation:'horizontal'
-                size_hint_y: 0.25
+                size_hint_y: 0.3
                 padding: "2dp"
-                spacing: "2dp"
+                spacing: "4dp"
                 MDLabel:
-                    text: "Comentarios:"
+                    id: comment_label
                     font_style: "Subtitle2"
                     halign: "right"
-                    size_hint_x: 0.3
+                    size_hint_x: 0.33
                     theme_text_color: "Custom"
                     text_color: 0, 0, 0.9, 1
                 MDLabel:
                     id: notes
                     md_bg_color: 1,1,1,0.94
+                    font_size: "15sp"
             MDBoxLayout:
                 orientation:'horizontal'
-                size_hint_y: 0.25
+                size_hint_y: 0.3
                 padding: "2dp"
                 spacing: "2dp"
                 MDLabel:
-                    text: "Diagnóstico:"
+                    id: diagnosis_label
                     font_style: "Subtitle2"
                     halign: "right"
-                    size_hint_x: 0.3
+                    size_hint_x: 0.32
                     theme_text_color: "Custom"
                     text_color: 0.1, 0.7, 0.1, 1
                 MDLabel:
                     id: diagnostic
                     md_bg_color: 1,1,1,0.94
+                    font_size: "15sp"
 
 
         ToolbarScreen:
@@ -112,38 +164,36 @@ MDNavigationLayout:
             name: "ekg_create_view"
             title: "Nuevo EKG"
             action_items: [['arrow-left', lambda *args : app.go_back("ekg_list_view")]]
-            on_enter:
+            right_items: [['content-save', lambda _: app.save_exam()]]
+            on_pre_enter:
                 app.root.ids.new_exam_metadata.populate(self.object_id)
                 app.root.ids.new_ekg.reset()
+                app.root.ids.ok_device_panel.duration = 10
             ExamMetadataForm:
                 id: new_exam_metadata
-            OKDevicePanel:
-                id: ok_device_panel 
+                size_hint_y: 0.45
             ScrollView:
                 do_scroll_y: False
                 effect_cls: 'ScrollEffect'
+                size_hint_y: 0.33
                 Plot:
                     id: new_ekg
                     size_hint_x: None
                     size_hint_y: None
                     height: self.parent.height
                     width: self.parent.width
-            MDBoxLayout:
-                orientation: 'horizontal'
-                adaptive_height: True
-                size_hint_x: 1
-                padding: dp(8)
-                spacing: dp(8)
-                Widget:
-                MDFlatButton:
-                    text: "CANCELAR"
-                    pos_hint: {'center_y': 0.5}
-                MDRaisedButton:
-                    text: "GUARDAR"
-                    halign: 'right'
-                    pos_hint: {'center_y': 0.5}
-                    on_release:
-                        app.show_comment_dialog()
+                    sample_rate: app.ble.sample_rate
+                    gain: app.ble.conv_factor
+            OKDevicePanel:
+                id: ok_device_panel
+                sample_rate: app.ble.sample_rate
+                leads: app.ble.lead_count
+                battery: app.ble.battery_level
+                resolution: app.ble.resolution
+                fw_version: app.ble.fw_version
+                ble_state: app.ble.state
+                size_hint_y: 0.27
+
 
         ToolbarScreen:
             name: "patient_list_view"
@@ -158,18 +208,21 @@ MDNavigationLayout:
 
         ToolbarScreen:
             name: "patient_detail_view"
-            title: "View Patient"
+            title: "Detalle de paciente"
             action_items: [['arrow-left', lambda _ : app.go_back("patient_list_view")]]
             right_items: [['delete', lambda _: app.delete_patient(self.object_id)]]
-            on_enter: app.root.ids.patient_detail.populate(self.object_id)
+            on_pre_enter:
+                app.root.ids.patient_detail.populate(self.object_id)
             PatientDetail:
                 id: patient_detail
+                pos_hint: {'top': 0.0}
 
 
         ToolbarScreen:
             name: "patient_create_view"
             title: "Nuevo paciente"
             action_items: [['arrow-left', lambda *args : app.go_back("patient_list_view")]]
+            on_enter: app.root.ids.patient_form.clear_fields()
             ScrollView:
                 PatientForm:
                     id: patient_form
@@ -179,34 +232,32 @@ MDNavigationLayout:
             name: "config"
             title: "Configuración"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
+            right_items: [['refresh-circle',lambda _: app.populate_hospitals()]]
             on_enter:
                 uid.ids.text_field.text = app.store['user']['id']
                 mode_control.populate()
-                device_control.populate()
+                filter_control.populate()
             MDLabel:
                 text: "ID de Usuario"
-                font_style: "H4"
+                font_style: "H6"
                 halign: "center"
             OKIdTextField:
                 id: uid
-                md_bg_color: .8,.8,.9,.9
-            Widget:    
+                md_bg_color: .8,.8,.9,.9 
             MDLabel:
                 text: "Modo de uso de la Aplicación"
-                font_style: "H4"
+                font_style: "H6"
                 halign: "center"
             OKModeControl:
                 id: mode_control
                 md_bg_color: .8,.8,.9,.9
-            Widget:
             MDLabel:
-                text: "Frecuencia de Muestreo (sps)"
-                font_style: "H4"
+                text: "Filtro digital (Hardware)"
+                font_style: "H6"
                 halign: "center"
-            OKDeviceControl:
-                id: device_control
+            OKFilterControl:
+                id: filter_control
                 md_bg_color: .8,.8,.9,.9
-            Widget:
             Widget:
 
 
@@ -214,8 +265,10 @@ MDNavigationLayout:
             name: "help"
             title: "Ayuda"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
-
-
+            OKHelpView:
+                id:help_view
+                        
+                        
     MDNavigationDrawer:
         id: nav_drawer
         ContentNavigationDrawer:

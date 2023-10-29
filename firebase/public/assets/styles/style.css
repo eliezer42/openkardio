@@ -1,0 +1,122 @@
+/* Import Roboto font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+/* Apply Roboto font to the entire document */
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Define color palette */
+:root {
+  --light-blue: #f0f0fa;
+  --dark-blue: #5f99d3;
+  --dark-green: #02ad02;
+}
+
+/* Reset some default styling */
+body, h1, p {
+  margin: 0;
+  padding: 0;
+}
+
+/* Basic styling for header */
+header {
+  background-color: var(--light-blue);
+  padding: 10px;
+  text-align: center;
+}
+
+header h1 {
+  color: black;
+}
+
+/* Center the form and its elements */
+main {
+  display: flex;
+  padding: 20px;
+  justify-content: center;
+  align-items: start;
+  min-height: calc(100vh - 450px); /* Adjust this value as needed */
+}
+
+.subtitle {
+  margin-top: 20px;
+  font-size: 18px;
+  color: var(--dark-green);
+}
+
+/* Style the form */
+form {
+  width: 595px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #fff;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+textarea {
+  width: 100%;
+  height: 100px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  resize: vertical;
+}
+
+button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: var(--dark-blue);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* Additional styles for button */
+.button {
+  display: inline-block;
+  background-color: var(--dark-green);
+  color: white;
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 5px;
+}
+
+footer {
+  background-color: var(--light-blue);
+  padding: 20px 0;
+  text-align: center;
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-logo img {
+  width: 81px; 
+}
+
+.footer-text {
+  text-align: right;
+}
+
+.footer-text p {
+  margin: 5px 0;
+  color: #2c2c2c;
+  font-size: 10pt;
+}

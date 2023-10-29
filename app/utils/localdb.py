@@ -1,17 +1,11 @@
-from kivy.logger import Logger
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, LargeBinary, Float, DateTime, Date
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy_utils import create_database, database_exists
-from datetime import date, datetime
+from datetime import date
+from os.path import join
 
-SQLITE = f'sqlite:///ok.db?check_same_thread=False'
-if not database_exists(SQLITE):
-    create_database(SQLITE)
-
-engine = create_engine(SQLITE, echo=False)
 Base = declarative_base()
-Session = sessionmaker(bind=engine)
 
 class Hospital(Base):
     __tablename__ = 'hospitals'
@@ -47,14 +41,15 @@ class Patient(Person, Base):
 
     record = Column(String, default="")
     emergency_contact = Column(String, default="")
-    exams = relationship("Exam", back_populates='patient')
+    exams = relationship("Exam", back_populates='patient', cascade="all, delete-orphan")
 
 class Ekg(Base):
     __tablename__ = 'ekgs'
     id = Column(Integer, primary_key=True)
     sample_rate = Column(Integer)
     signal = Column(LargeBinary)
-    gain = Column(Float, default=1.0)
+    gain = Column(Float, default=8800.0)
+    rpeaks = Column(LargeBinary)
     bpm = Column(Integer)
     leads = Column(Integer, default=1)
     disabled = Column(Boolean, default=False)
@@ -87,4 +82,13 @@ class Exam(Base):
     destination = relationship('Hospital', back_populates='exams')
 
 
-Base.metadata.create_all(engine)
+def session_init(data_dir):
+    SQLITE = f'sqlite:///{join(data_dir,"ok.db")}?check_same_thread=False'
+    if not database_exists(SQLITE):
+        create_database(SQLITE)
+
+    engine = create_engine(SQLITE, echo=False)
+    Session = sessionmaker(bind=engine)
+    Base.metadata.create_all(engine)
+
+    return Session()

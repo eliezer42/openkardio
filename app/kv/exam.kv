@@ -1,4 +1,4 @@
-#:kivy 2.1.0
+#:kivy 2.2.0
 #:import * exam
 
 <ExamList>:
@@ -58,8 +58,8 @@
 <ExamMetadataDetail>:
     orientation: 'vertical'
     adaptive_height: True
-    padding: dp(8)
-    spacing: dp(8)
+    padding: [dp(4), dp(16), dp(4), dp(16)]
+    spacing: dp(16)
     md_bg_color: "#f4dedc"
     MDLabel:
         text: root.title
@@ -112,8 +112,8 @@
 
 <ExamMetadataForm>:
     orientation: 'vertical'
-    padding: dp(8)
-    spacing: dp(8)
+    padding: dp(12)
+    spacing: dp(12)
     md_bg_color: "#f4dedc"
     adaptive_height: True
     MDLabel:
@@ -129,23 +129,28 @@
         MDTextField:
             id: spo2
             icon_left: 'water-percent'
-            hint_text: "SpO2"
+            hint_text: "SpO2 (%)"
             helper_text: "Ej.: 95"
         MDTextField:
             id: weight_pd
             icon_left: 'weight-pound'
             hint_text: "Peso (lb)"
             helper_text: "Ej.: 190"
-        MDTextField:
-            id: pressure
-            icon_left: 'gauge'
-            hint_text: "Presión"
-            helper_text: "Ej.: 120/80"
+    MDTextField:
+        id: pressure
+        icon_left: 'gauge'
+        hint_text: "Presión Arterial"
+        helper_text: "Ej.: 120/80"
+    MDTextField:
+        id: notes
+        icon_left: 'comment-plus'
+        hint_text: "Comentarios"
+        do_wrap: True
 
 <OKDevicePanel>:
     orientation: 'vertical'
-    padding: dp(8)
-    spacing: dp(8)
+    padding: dp(16)
+    spacing: dp(16)
     md_bg_color: "#f4dedc"
     adaptive_height: True
     title: "OpenKardio Device"
@@ -155,12 +160,12 @@
         font_style: "Subtitle2"
     MDBoxLayout:
         orientation: 'horizontal'
-        padding: dp(4)
-        spacing: dp(4)
+        padding: dp(8)
+        spacing: dp(8)
         md_bg_color: "#f4dedc"
         adaptive_height: True
         MDLabel:
-            text: "Status: " + root.status
+            text: root.status
             halign: 'left'
         MDRaisedButton:
             text: root.button_text
@@ -168,22 +173,42 @@
             pos_hint: {'center_y': 0.5}
             md_bg_color: root.button_color
             on_release:
-                root.set_status()
-                root.set_button_status()
+                root.set_state()
     MDBoxLayout:
-        orientation: 'horizontal'
-        spacing: dp(4)
-        md_bg_color: "#f4dedc"
+        orientation:"vertical"
         adaptive_height: True
-        OKIconItem:
-            id: sample_rate
-            icon: 'chart-timeline-variant'
-            text: '240 sps'
-        OKIconItem:
-            id: leads
-            icon: 'heart-flash'
-            text: '1 leads'
-        OKIconItem:
-            id: battery
-            icon: 'battery-bluetooth-variant'
-            text: '100%'
+        spacing: dp(8)
+        spacing: dp(24)
+        md_bg_color: "#f4dedc"
+        MDBoxLayout:
+            orientation: 'horizontal'
+            spacing: dp(8)
+            adaptive_height: True
+            OKIconItem:
+                id: sample_rate
+                icon: 'chart-timeline-variant'
+                text: "-- sps"
+            OKIconItem:
+                id: leads
+                icon: 'heart-flash'
+                text: "-- leads"
+            OKIconItem:
+                id: battery
+                icon: 'battery-bluetooth-variant'
+                text: "-- %"
+        MDBoxLayout:
+            orientation: 'horizontal'
+            spacing: dp(8)
+            adaptive_height: True
+            OKIconItem:
+                id: resolution
+                icon: 'stairs-box'
+                text: "-- bits"
+            OKIconItem:
+                id: fwv
+                icon: 'memory'
+                text: "--"
+            OKIconItem:
+                id: duration 
+                icon: 'timer'
+                text: str(root.duration) +" s."
