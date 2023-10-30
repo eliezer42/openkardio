@@ -25,10 +25,10 @@
 #define FRONTEND_GAIN 1100.0 // mV/mV
 #define FRONTEND_LEADS 1
 
-#define EKG_SAMPLE_RATE 480                   // SPS Multiples of 10 is recomended
-#define SAMPLES_PER_FRAME EKG_SAMPLE_RATE/32  // 1000/BLE_MIN_CONN_INTERVAL >= FPS >= 1000/BLE_MAX_CONN_INTERVAL
-#define BUFFER_LENGTH 80                     // Bytes > 2 * EKG_SAMPLE_RATE / (1000/BLE_MAX_CONN_INTERVAL)
-#define BLE_L2CAP_MTU BUFFER_LENGTH + 3       // Bytes
+#define EKG_SAMPLE_RATE 480
+#define SAMPLES_PER_FRAME 15
+#define BUFFER_LENGTH 80
+#define BLE_L2CAP_MTU BUFFER_LENGTH + 3 // Bytes
 #define COMMAND 0
 #define PAYLOAD 1
 
