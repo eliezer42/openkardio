@@ -130,16 +130,18 @@ exports.sendNotificationOnCreation = functions.database
       ctx.stroke();
     }
 
-    ctx.strokeStyle = "rgba(25,25,25,0.3)";
+    ctx.strokeStyle = "rgba(25,25,25,0.8)";
     ctx.fillStyle = "rgb(0,0,0)";
     ctx.font = "11pt sans-serif";
     for (let i = 1; i < rPeaks.length - 1; i++) {
       ctx.beginPath();
       ctx.lineWidth = 3;
-      ctx.moveTo(((rPeaks[i + 1] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphMargin);
-      ctx.lineTo(((rPeaks[i + 1] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphHeight + graphMargin);
+      ctx.moveTo(((rPeaks[i + 1] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphHeight + graphMargin + 2);
+      ctx.lineTo(((rPeaks[i + 1] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphHeight + graphMargin + 17);
       ctx.stroke();
-      ctx.fillText(`${Math.floor(rPeaks[i + 1]*1000/sampleRate + 400)} ms`, (rPeaks[i + 1] + 193)*(graphCanvas.width - 40) / (sampleRate*10.0), graphCanvas.height - 4);
+      if (i > 1) {
+        ctx.fillText(`${Math.floor((rPeaks[i + 1] - rPeaks[i])*1000/sampleRate)} ms`, (rPeaks[i] + 0.5*(rPeaks[i + 1] - rPeaks[i]) + 193)*(graphCanvas.width - 40) / (sampleRate*10.0), graphCanvas.height - 4);
+      }
     }
 
     ctx.strokeStyle = "black";
@@ -157,7 +159,7 @@ exports.sendNotificationOnCreation = functions.database
     ctx.fillStyle = "rgb(0,0,0)";
     ctx.font = "11pt sans-serif";
     ctx.fillText(`Paciente: ${patientName} |  Caso #${caseId}  |  Fecha: ${created}`, 20, 16);
-    ctx.fillText("0.2 s/div - 0.5 mV/div", 20, graphCanvas.height - 4);
+    ctx.fillText("0.2 s/div - 0.5 mV/div\t\tIntervalos RR ->", 20, graphCanvas.height - 4);
 
     // Convert canvas to PNG buffer
     const graphImageBuffer = graphCanvas.toBuffer();

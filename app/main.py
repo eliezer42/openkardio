@@ -452,7 +452,7 @@ class OpenKardioApp(MDApp):
         exam = self.session.query(ldb.Exam).filter(ldb.Exam.id == exam_id).one()
         make_transient(exam)
         exam.id = None
-        exam.global_id = None
+        exam.remote_id = None
         exam.sent = None
         exam.status = "GUARDADO"
         self.session.add(exam)
