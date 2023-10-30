@@ -75,7 +75,6 @@ exports.sendNotificationOnCreation = functions.database
     const patientAge = calculateAge(parseDateString(caseData.patient_birth_date)).toString();
     const patientIdentification = caseData.patient_identification;
     const sampleRate = caseData.sample_rate;
-    const leads = caseData.leads;
     const spo2 = caseData.spo2;
     const weight = caseData.weight_pd;
     const pressure = caseData.pressure;
@@ -97,8 +96,8 @@ exports.sendNotificationOnCreation = functions.database
     const normalizedSignal = normalizeIntArray(originalSignal, signalGain, 10*pixelsPerSubdiv);
 
     console.log("Compressed bytes length:", compressedSignalBytes.length);
-    console.log("Compressed buffer length:", compressedSignalBuffer.byteLength);
-    console.log("Decompressed length:", decompressedSignalBuffer.buffer.byteLength);
+    // console.log("Compressed buffer length:", compressedSignalBuffer.byteLength);
+    // console.log("Decompressed length:", decompressedSignalBuffer.buffer.byteLength);
     // console.log("Original length:", new Int16Array(decompressedSignalBuffer.buffer));
     // console.log("Original Minimum:", Math.min(...originalSignal));
     // console.log("Original Maximum:", Math.max(...originalSignal));
@@ -111,7 +110,6 @@ exports.sendNotificationOnCreation = functions.database
     const ctx = graphCanvas.getContext("2d");
     ctx.fillStyle = "rgb(255,217,217)";
     ctx.fillRect(0, 0, graphWidth + 2*graphMargin, graphHeight + 2*graphMargin);
-    // Draw graph using basic functions
 
     ctx.strokeStyle = "rgba(220,153,153,0.9)";
 
@@ -135,17 +133,17 @@ exports.sendNotificationOnCreation = functions.database
     ctx.strokeStyle = "rgba(25,25,25,0.3)";
     ctx.fillStyle = "rgb(0,0,0)";
     ctx.font = "11pt sans-serif";
-    for (let i = 1; i < rPeaks.length; i++) {
+    for (let i = 1; i < rPeaks.length - 1; i++) {
       ctx.beginPath();
       ctx.lineWidth = 3;
-      ctx.moveTo(((rPeaks[i] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphMargin);
-      ctx.lineTo(((rPeaks[i] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphHeight + graphMargin);
+      ctx.moveTo(((rPeaks[i + 1] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphMargin);
+      ctx.lineTo(((rPeaks[i + 1] + 193)*(graphCanvas.width - 2*graphMargin) / (sampleRate*10.0)) + graphMargin, graphHeight + graphMargin);
       ctx.stroke();
-      ctx.fillText(`${Math.floor(rPeaks[i]*1000/sampleRate + 400)} ms`, (rPeaks[i] + 193)*(graphCanvas.width - 40) / (sampleRate*10.0), graphCanvas.height - 4);
+      ctx.fillText(`${Math.floor(rPeaks[i + 1]*1000/sampleRate + 400)} ms`, (rPeaks[i + 1] + 193)*(graphCanvas.width - 40) / (sampleRate*10.0), graphCanvas.height - 4);
     }
 
     ctx.strokeStyle = "black";
-    ctx.lineWidth = 1.3;
+    ctx.lineWidth = 1.9;
     ctx.beginPath();
     ctx.moveTo(20, graphCanvas.height/2);
     for (let i = 0; i < 193; i++) {
@@ -196,11 +194,7 @@ exports.sendNotificationOnCreation = functions.database
 
   <p><span style="font-family:Verdana,Geneva,sans-serif"><strong>NUEVO EXAMEN</strong></span></p>
 
-  <p>✅<span style="font-family:Verdana,Geneva,sans-serif"> Ingrese a la aplicaci&oacute;n de <strong>OpenKardio</strong> para revisar el examen.</span></p>
-  <p>✅<span style="font-family:Verdana,Geneva,sans-serif"> Alternativamente, puedes enviar tu diagn&oacute;stico en el siguiente enlace:</span></p>
-
-  <a class="button" href="${functions.config().form.url}/diagnosis-form.html?examId=${caseId}"><strong>Diagnosticar examen</strong></a>
-  <p>&nbsp;</p>
+  <p>✅<span style="font-family:Verdana,Geneva,sans-serif">Al final de este correo encontrará el enlace hacia el formulario de diagnóstico.</span></p>
 
   <p><span style="font-family:Verdana,Geneva,sans-serif"><strong>DATOS DEL PACIENTE</strong></span></p>
 
@@ -260,8 +254,8 @@ exports.sendNotificationOnCreation = functions.database
   <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${bpm.toString()} bpm</span></td>
   </tr>
   <tr>
-  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Derivaciones</strong></span></td>
-  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${leads}</span></td>
+  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Derivación</strong></span></td>
+  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">II</span></td>
   </tr>
   <tr>
   <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Tasa de muestreo</strong></span></td>
@@ -275,6 +269,9 @@ exports.sendNotificationOnCreation = functions.database
   </table>
 
   <p>&nbsp;</p>
+  <a class="button" href="${functions.config().form.url}/diagnosis-form.html?examId=${caseId}"><strong>Diagnosticar examen</strong></a>
+  <p>&nbsp;</p>
+  <p><span style="font-family:Verdana,Geneva,sans-serif; font-size: 10px; color: #2c2c2c">OpenKardio es una plataforma de Telecardiografía digital en fase de desarrollo. Su uso aún no está recomendando para diagnóstico clínico.</span></p>
 </body>
     `;
 
@@ -297,7 +294,7 @@ exports.sendNotificationOnCreation = functions.database
       from: functions.config().gmail.address,
       to: email,
       replyTo: origEmail.length ? origEmail : functions.config().gmail.address,
-      subject: `Nuevo EKG para ${destId}`,
+      subject: `Nuevo Electrocardiograma para ${destId}`,
       html: htmlContent,
       attachments: [{
         filename: `ekg_${caseId}.png`,

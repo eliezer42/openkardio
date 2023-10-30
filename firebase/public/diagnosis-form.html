@@ -1,42 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OK: Formulario de diagnóstico</title>
-  <link rel="stylesheet" href="assets/styles/style.css">
-</head>
-<body>
-  <header>
-    <h1>Formulario de diagnóstico</h1>
-    <img src="assets/images/imagotipo.png" alt="Logo">
-    <div class="subtitle-container">
-      <p class="subtitle">ID del Caso: <strong>${examId}</strong></p>
-    </div>
-  </header>
-
-  <main>
-    
-    <form id="diagnosisForm">
-      <input type="hidden" name="examId" value="">
-      <label for="diagnosis">Diagnosis:</label>
-      <textarea id="diagnosis" name="diagnosis" required></textarea>
-      <button type="submit">Enviar Diagnóstico</button>
-    </form>
-  </main>
-
-  <footer>
-    <div class="footer-content">
-      <div class="footer-logo">
-        <img src="assets/images/uni-mini-logo.png" alt="Logo">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OK: Formulario de diagnóstico</title>
+    <link rel="stylesheet" href="assets/styles/style.css">
+  </head>
+  <body>
+    <header>
+      <h1>Formulario de diagnóstico</h1>
+      <div class="image-container">
+        <img src="assets/images/imagotipo.png" alt="Logo" class="responsive-image">
       </div>
-      <div class="footer-text">
-        <p>Eliézer Guillermo Méndez Delgado</p>
-        <p>Universidad Nacional de Ingeniería</p>
-        <p>Managua, Nicaragua</p>
+      <div class="subtitle-container">
+        <p class="subtitle">ID del Caso: <strong>${examId}</strong></p>
       </div>
-    </div>
-  </footer>
-  <script src="assets/scripts/script.js"></script>
-</body>
+    </header>
+
+    <main>
+      <div>
+        <form id="diagnosisForm">
+          <input type="hidden" name="examId" value="">
+          <label for="diagnosis">Escriba su diagnóstico:</label>
+          <textarea id="diagnosis" name="diagnosis" required></textarea>
+          <button type="submit">Enviar Diagnóstico</button>
+        </form>
+
+        <div class="footer-text">
+          <p>OpenKardio es una plataforma de Telecardiografía digital en fase de desarrollo. Su uso aún no está recomendando para diagnóstico clínico.</p>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="footer-content">
+        <div class="footer-logo">
+          <img src="assets/images/uni-mini-logo.png" alt="Logo" class="responsive-image">
+        </div>
+        <div class="footer-text">
+          <p>Eliézer Guillermo Méndez Delgado</p>
+          <p>Universidad Nacional de Ingeniería</p>
+          <p>Managua, Nicaragua</p>
+        </div>
+      </div>
+    </footer>
+    <script src="assets/scripts/script.js"></script>
+  </body>
 </html>
