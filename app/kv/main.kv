@@ -65,7 +65,6 @@ MDNavigationLayout:
                 color: "grey"
                 size_hint: 1, 0.03
 
-
         ToolbarScreen:
             name: "ekg_list_view"
             title: "Exámenes"
@@ -94,7 +93,6 @@ MDNavigationLayout:
 
                     ExamList:
                         id: exam_done_list
-
 
         ToolbarScreen:
             name: "ekg_detail_view"
@@ -150,7 +148,6 @@ MDNavigationLayout:
                     md_bg_color: 1,1,1,0.94
                     font_size: "15sp"
 
-
         ToolbarScreen:
             name: "select_patient_view"
             title: "Seleccione el paciente"
@@ -158,7 +155,6 @@ MDNavigationLayout:
             on_enter: app.root.ids.patient_selector.populate()
             PatientSelector:
                 id: patient_selector
-
 
         ToolbarScreen:
             name: "ekg_create_view"
@@ -194,7 +190,6 @@ MDNavigationLayout:
                 ble_state: app.ble.state
                 size_hint_y: 0.27
 
-
         ToolbarScreen:
             name: "patient_list_view"
             title: "Pacientes"
@@ -204,7 +199,6 @@ MDNavigationLayout:
             ScrollView:
                 PatientList:
                     id: patient_list
-
 
         ToolbarScreen:
             name: "patient_detail_view"
@@ -217,7 +211,6 @@ MDNavigationLayout:
                 id: patient_detail
                 pos_hint: {'top': 0.0}
 
-
         ToolbarScreen:
             name: "patient_create_view"
             title: "Nuevo paciente"
@@ -226,7 +219,6 @@ MDNavigationLayout:
             ScrollView:
                 PatientForm:
                     id: patient_form
-
 
         ToolbarScreen:
             name: "config"
@@ -260,15 +252,13 @@ MDNavigationLayout:
                 md_bg_color: .8,.8,.9,.9
             Widget:
 
-
         ToolbarScreen:
             name: "help"
             title: "Ayuda"
             action_items: [['menu', lambda x: app.root.ids.nav_drawer.set_state("open")]]
             OKHelpView:
                 id:help_view
-                        
-                        
+                                           
     MDNavigationDrawer:
         id: nav_drawer
         ContentNavigationDrawer:

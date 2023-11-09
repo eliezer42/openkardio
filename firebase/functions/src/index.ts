@@ -73,7 +73,7 @@ exports.sendNotificationOnCreation = functions.database
     const patientName = caseData.patient_first_name + " " + caseData.patient_last_name;
     const patientRecord = caseData.patient_record;
     const patientAge = calculateAge(parseDateString(caseData.patient_birth_date)).toString();
-    const patientIdentification = caseData.patient_identification;
+    // const patientIdentification = caseData.patient_identification;
     const sampleRate = caseData.sample_rate;
     const spo2 = caseData.spo2;
     const weight = caseData.weight_pd;
@@ -217,10 +217,6 @@ exports.sendNotificationOnCreation = functions.database
   <tr>
   <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Expediente</strong></span></td>
   <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${patientRecord}</span></td>
-  </tr>
-  <tr>
-  <td style="width:130px"><span style="font-family:Verdana,Geneva,sans-serif"><strong>Doc. Identidad</strong></span></td>
-  <td style="width:320px"><span style="font-family:Verdana,Geneva,sans-serif">${patientIdentification}</span></td>
   </tr>
   </tbody>
   </table>
